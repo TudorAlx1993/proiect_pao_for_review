@@ -2,8 +2,6 @@ package bank;
 
 import currency.Currency;
 
-import java.time.LocalDate;
-
 public interface BankActions {
     void showCustomers();
 
