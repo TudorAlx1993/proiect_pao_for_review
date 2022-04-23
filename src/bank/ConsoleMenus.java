@@ -1,8 +1,6 @@
 package bank;
 
-import configs.ExchangeRatesConfig;
 import configs.InterestRateConfig;
-import configs.SystemDate;
 import currency.Currency;
 import customers.Customer;
 import products.CurrentAccount;
@@ -11,7 +9,6 @@ import products.Deposit;
 import products.Product;
 import utils.AmountFormatter;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;

@@ -9,7 +9,6 @@ import utils.AmountFormatter;
 
 import java.security.InvalidParameterException;
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.Objects;
 
 public class Deposit extends Product {

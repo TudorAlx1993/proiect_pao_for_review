@@ -1,6 +1,5 @@
 package customers;
 
-import bank.Bank;
 import products.CurrentAccount;
 import products.DebitCard;
 import products.Deposit;
