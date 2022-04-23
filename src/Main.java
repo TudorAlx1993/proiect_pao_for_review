@@ -4,8 +4,6 @@ import currency.Currency;
 import customers.Company;
 import customers.Individual;
 import products.CurrentAccount;
-import services.ExchangeRateService;
-import tests.GeneralTest;
 import bank.Bank;
 
 import java.lang.Math;
@@ -13,12 +11,6 @@ import java.time.LocalDate;
 
 public class Main {
     public static void main(String[] args) {
-        // various tests during the development phase
-        boolean allowTests = true;
-        if (allowTests) {
-            GeneralTest.run();
-        }
-
         // create the bank
         Bank bank = Bank.getBank(
                 "First Bank of Romania",
