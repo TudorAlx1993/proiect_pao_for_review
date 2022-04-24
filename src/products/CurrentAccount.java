@@ -121,6 +121,10 @@ public class CurrentAccount extends Product {
                 return "received in exchange rate service";
             case INTEREST_FROM_DEPOSIT:
                 return "interest from deposit";
+            case PAYMENT_FOR_LOAN:
+                return "payment for loan";
+            case INTEREST_FOR_LOAN:
+                return "interest for loan";
             default:
                 return "other transaction";
         }

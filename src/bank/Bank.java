@@ -80,8 +80,8 @@ public final class Bank implements BankActions {
     }
 
     @Override
-    public void showSystemDate(){
-        System.out.println("System date: "+SystemDate.getDate());
+    public void showSystemDate() {
+        System.out.println("System date: " + SystemDate.getDate());
     }
 
     @Override
@@ -245,7 +245,7 @@ public final class Bank implements BankActions {
     }
 
     @Override
-    public void showExchangeRates(){
+    public void showExchangeRates() {
         ExchangeRateService.showAvailableExchangeRates();
     }
 
@@ -382,14 +382,63 @@ public final class Bank implements BankActions {
     }
 
     private void checkForLoansThatReachedPaymentDay() {
-        // aici este mai greu de implementat logica
-        // mi-am dat seama la sfarsit
-        // si nu prea mai am timp
-        // ar trebui sa iau in calcul si platite de dobanzi si principal (care sunt lunare) intre data acordarii creditului
-        // si data curenta a sistemului
-        // plus situatia in care clientul nu are bani in contul curenta pentru plata
-        // o sa scriu aceasta functie cand o sa ma apuc de a doua parte a proiectului
+        for (Customer customer : this.customers) {
+            ArrayList<Integer> productIndexes = new ArrayList<>();
+            int productIndex = -1;
+            for (Product product : customer.getProducts()) {
+                productIndex += 1;
+                if (product instanceof Loan) {
+                    Loan loan = (Loan) product;
+                    Currency currency = loan.getCurrency();
+                    CurrentAccount currentAccount = loan.getCurrentAccount();
+
+                    // check for each payment date up to the current date (system date)
+                    while (true) {
+                        int indexToNextPaymentDate = loan.getIndexToNextPaymentDate();
+                        LocalDate nextPaymentDate = loan.getPaymentDates().get(indexToNextPaymentDate);
+
+                        if (nextPaymentDate.compareTo(SystemDate.getDate()) > 0)
+                            break;
+
+                        loan.checkForUpdatedInterestRate();
+
+                        double principal = loan.getPrincipalPaymentAmount();
+                        double interest = loan.getInterestPaymentAmount();
+
+                        if (currentAccount.checkAmountForTransaction(principal + interest)) {
+                            this.modifyLiquidity(currency, principal + interest);
+                            currentAccount.makeTransaction(principal, TransactionType.DEBIT, TransactionDetail.PAYMENT_FOR_LOAN, nextPaymentDate);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            loan.decreaseLoanCurrentAmount(principal);
+                            loan.updateIndexToNextPayment();
+                        } else if (currentAccount.checkAmountForTransaction(interest)) {
+                            this.modifyLiquidity(currency, interest);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            // acum modificam scadentarul de plata intrucat clientul nu are suficienti bani pentru plata principalului
+                            loan.updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment();
+                        } else {
+                            // in situatia in care clientul nu are bani in contul curent pentru plata dobanzii
+                            // presupunem ca isi face el un transfer dintr-o sursa externa in contul curent
+                            customer.transferMoneyToCurrentAccount(currentAccount, interest);
+                            this.modifyLiquidity(currency, interest);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            loan.updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment();
+                        }
+
+                        if (indexToNextPaymentDate==(loan.getMaturityInMonths()-1)) {
+                            System.out.println("ok");
+                            productIndexes.add(Integer.valueOf(productIndex));
+                            break;
+                        }
+                    }
+                }
+            }
+            int count = 0;
+            for (Integer indexOfProductToDelete : productIndexes)
+                customer.getProducts().remove(indexOfProductToDelete.intValue() - (count++));
+        }
     }
+
 
     public static Bank getBank(String bankName,
                                String motto,

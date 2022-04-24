@@ -170,7 +170,7 @@ public class Main {
         individual1.createDebitCard(currentAccountRON, "1234", "VISA");
         individual1.createDeposit(currentAccountRON, 5000, 12);
         individual1.createDeposit(currentAccountRON, 2000, 3);
-        individual1.applyForLoan(currentAccountRON, 500, 12, 1500);
+        individual1.applyForLoan(currentAccountRON, 3000, 48, 15000);
 
         // run program in console interface
         System.out.println("");
