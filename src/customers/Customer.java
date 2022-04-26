@@ -2,6 +2,8 @@
 package customers;
 
 import address.Address;
+import audit.AuditService;
+import audit.UserType;
 import bank.Bank;
 import configs.*;
 import currency.Currency;
@@ -85,7 +87,15 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
     @Override
     public void addCurrentAccount(String currencyCode) {
-        this.products.add(new CurrentAccount(new Currency(currencyCode), LocalDate.now()));
+        CurrentAccount currentAccount = new CurrentAccount(new Currency(currencyCode));
+        this.products.add(currentAccount);
+
+        // do not log to audit files the creation of the first current account
+        // when a customer (Individual or Company) is created, a current account in RON is added by default by a call to the super in the constructor
+        // when super is called, the customer name is NULL
+        // without the below if, null will appear within the log files as the customer name
+        if (this.getCustomerUniqueID() != null)
+            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " created a new current account in " + currencyCode + " with IBAN " + currentAccount.getIBAN());
     }
 
     private CurrentAccount getCurrentAccount(String iban) {
@@ -160,8 +170,9 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // detete all the associated debit cards with the current account
         this.deleteDebitCard(currentAccount, false);
 
+        String iban = currentAccount.getIBAN();
         this.products.remove(currentAccount);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " deleted the current account with IBAN " + iban);
     }
 
     private boolean doesDebitCardExists(CurrentAccount currentAccount) {
@@ -196,7 +207,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // InternalApi.deliverCard(card,this.getAddress());
         // ExternalApi.activateCard(card);
 
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " requested a debit card for the current account with IBAN " + currentAccount.getIBAN());
     }
 
     private DebitCard getDebitCard(CurrentAccount currentAccount) {
@@ -227,7 +238,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
         this.products.remove(debitCard);
         if (printMessage)
-            System.out.println("Bank message: operation completed.");
+            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card associated with " + currentAccount.getIBAN());
     }
 
     @Override
@@ -235,6 +246,8 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         System.out.println(this.getCustomerName() + "'s products:");
         for (Product product : this.products)
             System.out.println(product.toString());
+
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed its products");
     }
 
     @Override
@@ -252,7 +265,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         currentAccount.makeTransaction(amount, TransactionType.CREDIT, TransactionDetail.TRANSFER);
-        System.out.println("Bank message: money received.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " received " + amount + currentAccount.getCurrency().getCurrencyCode() + " in the current account with IBAN " + currentAccount.getIBAN());
     }
 
     @Override
@@ -268,7 +281,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         Bank.getBank().createDeposit(this, currentAccount, depositAmount, maturity);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " created a deposit with an amount of " + depositAmount + currentAccount.getCurrency().getCurrencyCode() + " and a maturity of " + maturity + " months");
     }
 
     @Override
@@ -280,12 +293,13 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
         double amount = deposit.getDepositAmount();
         Bank.getBank().modifyLiquidity(deposit.getCurrency(), -amount);
+        String currencyCode = deposit.getCurrency().getCurrencyCode();
         this.products.remove(deposit);
         deposit.getAssociatedCurrentAccount().makeTransaction(
                 amount,
                 TransactionType.CREDIT,
                 TransactionDetail.LIQUIDATE_DEPOSIT);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " liquidated before maturity a deposit of " + amount + currencyCode);
     }
 
     @Override
@@ -296,26 +310,31 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         currentAccount.generateStatement();
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " generated a statement for the current account with IBAN " + currentAccount.getIBAN());
     }
 
     @Override
     public void showMyCurrentAccounts() {
         this.showProducts(ProductType.CURRENT_ACCOUNT);
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed its current accounts");
     }
 
     @Override
     public void showMyLoans() {
         this.showProducts(ProductType.LOAN);
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed its loans");
     }
 
     @Override
     public void showMyDeposits() {
         this.showProducts(ProductType.DEPOSIT);
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed its deposits");
     }
 
     @Override
     public void showMyDebitCards() {
         this.showProducts(ProductType.DEBIT_CARD);
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed its debit cards");
     }
 
     @Override
@@ -347,7 +366,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 TransactionDetail.WITHDRAW_FEE_FROM_ATM
         );
         Bank.getBank().modifyLiquidity(debitCard.getCurrency(), fee);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " withdrawn " + amount + debitCard.getCurrentAcount().getCurrency().getCurrencyCode() + " from ATM using the debit card associated to " + debitCard.getCurrentAcount().getIBAN());
     }
 
     @Override
@@ -363,7 +382,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         debitCard.changePin(oldPIN, newPIN);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " updated the PIN of the debit card associated with " + debitCard.getCurrentAcount().getIBAN());
     }
 
     @Override
@@ -430,12 +449,14 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 transactionDetail
         );
         Bank.getBank().modifyLiquidity(currentAccount.getCurrency(), fee);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " sent " + amount + currentAccount.getCurrency().getCurrencyCode() + " from " + currentAccount.getIBAN() + " to " + destinationIBAN);
     }
 
     @Override
     public void showCurrentInterestRates() {
         InterestRateConfig.showInterestRates();
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed the available interest rates for deposit and loans");
+
     }
 
     @Override
@@ -472,13 +493,13 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         //}
 
         Bank.getBank().createLoan(this, currentAccount, requestedAmount, maturity);
-        System.out.println("Bank message: operation completed.");
-
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " was granted a loan of " + requestedAmount + currentAccount.getCurrency().getCurrencyCode() + " with a maturity of " + maturity + " months");
     }
 
     @Override
     public void askForExchangeRates() {
         ExchangeRateService.showAvailableExchangeRates();
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " viewed the exchange rates");
     }
 
     @Override
@@ -505,7 +526,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 amountPaid,
                 toCurrentAccount,
                 amountReceived);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " exchanged " + amountPaid + fromCurrentAccount.getCurrency().getCurrencyCode() + " for " + toCurrentAccount.getCurrency().getCurrencyCode());
     }
 
     private boolean checkDebtRatio(double debtRatio) {
@@ -609,7 +630,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.hashOfPassword = Hash.computeHashOfString(newPassword, CustomerConfig.getHashAlgorithm());
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " updated the password");
     }
 
     public static int getNoOfCustomers() {

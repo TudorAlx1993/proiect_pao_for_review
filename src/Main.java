@@ -1,13 +1,17 @@
 import address.Address;
+import audit.UserType;
 import configs.*;
 import currency.Currency;
 import customers.Company;
 import customers.Individual;
 import products.CurrentAccount;
 import bank.Bank;
+import audit.AuditService;
 
 import java.lang.Math;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 public class Main {
     public static void main(String[] args) {
@@ -175,5 +179,8 @@ public class Main {
         // run program in console interface
         System.out.println("");
         bank.runInConsole();
+
+        // close the files related to audit
+        AuditService.closeFiles();
     }
 }

@@ -1,6 +1,8 @@
 package bank;
 
 import address.Address;
+import audit.AuditService;
+import audit.UserType;
 import configs.ExchangeRatesConfig;
 import configs.FeesConfig;
 import configs.InterestRateConfig;
@@ -64,12 +66,14 @@ public final class Bank implements BankActions {
         System.out.println("\nCustomers details:\n");
         for (Customer customer : this.customers)
             System.out.println(customer.toString());
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed customers");
     }
 
     @Override
     public void sortCustomersByNoProductsDesc() {
         Collections.sort(this.customers);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"sorted customers by number of products (desc)");
     }
 
     @Override
@@ -77,11 +81,14 @@ public final class Bank implements BankActions {
         System.out.println("\nCustomers details (summary):");
         System.out.println("\t* total customers (including deleted): " + Customer.getNoOfCustomers());
         System.out.println("\t* total active customers: " + this.customers.size());
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of customers");
     }
 
     @Override
     public void showSystemDate() {
         System.out.println("System date: " + SystemDate.getDate());
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the system date");
     }
 
     @Override
@@ -142,6 +149,8 @@ public final class Bank implements BankActions {
         }
 
         this.customers.add(customer);
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"added a new customer: "+customer.getCustomerName());
     }
 
     @Override
@@ -168,6 +177,8 @@ public final class Bank implements BankActions {
         System.out.println("\t* no of debit cards: " + countDebitCards);
         System.out.println("\t* no of deposits: " + countDeposits);
         System.out.println("\t* no of loans: " + countLoans);
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of products");
     }
 
 
@@ -188,6 +199,8 @@ public final class Bank implements BankActions {
             String message = "\t* " + AmountFormatter.format(amount) + " " + key.getCurrencyCode();
             System.out.println(message);
         }
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of liquidity");
     }
 
     @Override
@@ -198,7 +211,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setReferenceExchangeRateOfCurrencyPerRON(currency, exchangeRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set reference exchange rate for "+currency.getCurrencyCode()+" to "+exchangeRate+" RON");
     }
 
     @Override
@@ -210,7 +223,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setAskSpreadPercent(askSpreadPercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set ask spread for exchange rate to "+askSpreadPercent+"%");
     }
 
     @Override
@@ -222,7 +235,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setBidSpreadPercent(bidSpreadPercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set bid spread for exchange rate to "+bidSpreadPercent+"%");
     }
 
     @Override
@@ -233,7 +246,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setLoanInterestRate(currency, interestRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set loan interest rate for "+currency.getCurrencyCode()+" to "+interestRate+"%");
     }
 
     @Override
@@ -242,11 +255,15 @@ public final class Bank implements BankActions {
         System.out.println("\t* internal payment fee: " + FeesConfig.getInternalPaymentFeePercent() + "%");
         System.out.println("\t* external payment fee: " + FeesConfig.getExternalPaymentFeePercent() + "%");
         System.out.println("\t* atm withdrawn fee: " + FeesConfig.getAtmWitdrawFeePercent() + "%");
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the fees");
     }
 
     @Override
     public void showExchangeRates() {
         ExchangeRateService.showAvailableExchangeRates();
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed exchange rates");
     }
 
     @Override
@@ -264,7 +281,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setDepositInterestRate(currency, maturity, interestRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set deposit interest rate for "+currency.getCurrencyCode()+" and maturity="+maturity+" months to "+interestRate+"%");
     }
 
     @Override
@@ -282,7 +299,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setInternalPaymentFeePercent(internalPaymentFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set internal payment fee to "+internalPaymentFeePercent+"%");
     }
 
     @Override
@@ -300,7 +317,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setExternalPaymentFeePercent(externalPaymentFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set external payment fee to "+externalPaymentFeePercent+"%");
     }
 
     @Override
@@ -318,7 +335,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setAtmWitdrawFeePercent(atmWithdrawFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set atm withdraw fee to "+atmWithdrawFeePercent+"%");
     }
 
     @Override
@@ -332,7 +349,7 @@ public final class Bank implements BankActions {
         }
 
         SystemDate.setDate(newDate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER,"set system date to "+newDate);
 
         this.checkForDepositsThatReachedMaturity();
         this.checkForLoansThatReachedPaymentDay();

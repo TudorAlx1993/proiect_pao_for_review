@@ -1,5 +1,7 @@
 package configs;
 
+import audit.AuditService;
+import audit.UserType;
 import currency.Currency;
 import exceptions.InvalidDepositMaturityException;
 import exceptions.InvalidInterestRateException;
@@ -127,7 +129,6 @@ public final class InterestRateConfig {
             }
         } else
             System.out.println("\nThe interest rates for deposits are not yet set!");
-
     }
 
     public static void setDepositInterestRate(Currency currency, int maturity, double interestRate) {

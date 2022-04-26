@@ -1,5 +1,7 @@
 package bank;
 
+import audit.AuditService;
+import audit.UserType;
 import configs.InterestRateConfig;
 import currency.Currency;
 import customers.Customer;
@@ -90,6 +92,7 @@ final class ConsoleMenus {
                 case 0:
                     return;
                 case 1:
+                    AuditService.addLoggingData(UserType.BANK_MANAGER,"logged in");
                     ConsoleMenus.allowBankManagerToModifyTheBankState(bank);
                     break;
                 case 2:
@@ -97,8 +100,10 @@ final class ConsoleMenus {
                     Customer customer = ConsoleMenus.authentificateCustomer(bank);
                     if (customer == null)
                         System.out.println("Invalid credentials! Please try again!");
-                    else
+                    else {
+                        AuditService.addLoggingData(UserType.CUSTOMER,customer.getCustomerName()+" logged in");
                         ConsoleMenus.allowCustomerToInterogateBank(customer);
+                    }
                     break;
                 default:
                     System.out.println("Wrong choice. Please try again!");
@@ -162,9 +167,9 @@ final class ConsoleMenus {
                     break;
                 case 14:
                     bank.setSystemDate(
-                            (int)ConsoleMenus.getDoubleFromUser("Enter the day: "),
-                            (int)ConsoleMenus.getDoubleFromUser("Enter the month: "),
-                            (int)ConsoleMenus.getDoubleFromUser("Enter the year: "));
+                            (int) ConsoleMenus.getDoubleFromUser("Enter the day: "),
+                            (int) ConsoleMenus.getDoubleFromUser("Enter the month: "),
+                            (int) ConsoleMenus.getDoubleFromUser("Enter the year: "));
                     break;
                 case 15:
                     bank.addCustomerFromKeyboard();
@@ -174,6 +179,7 @@ final class ConsoleMenus {
                     break;
                 case 17:
                     InterestRateConfig.showInterestRates();
+                    AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the interest rates");
                     break;
                 case 18:
                     bank.showFees();

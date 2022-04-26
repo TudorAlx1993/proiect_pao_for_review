@@ -58,7 +58,7 @@ public class Individual extends Customer {
 
     @Override
     public String getCustomerName() {
-        return this.lastName + ", " + this.firstName;
+        return this.lastName + " " + this.firstName;
     }
 
     @Override

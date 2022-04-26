@@ -1,0 +1,16 @@
+TIMESTAMP,ACTION
+04-26-2022 06:15:37,LastName1 FirstName1 created a new current account in USD with IBAN RO09FBOR68382232057440885610174601
+04-26-2022 06:15:37,SC Coding Anything  SA created a new current account in EUR with IBAN RO09FBOR34890952484983552541005089
+04-26-2022 06:15:37,LastName1 FirstName1 received 10000.0RON in the current account with IBAN RO09FBOR58471555387598770036691156
+04-26-2022 06:15:37,LastName1 FirstName1 requested a debit card for the current account with IBAN RO09FBOR58471555387598770036691156
+04-26-2022 06:15:37,LastName1 FirstName1 created a deposit with an amount of 5000.0RON and a maturity of 12 months
+04-26-2022 06:15:37,LastName1 FirstName1 created a deposit with an amount of 2000.0RON and a maturity of 3 months
+04-26-2022 06:15:37,LastName1 FirstName1 was granted a loan of 3000.0RON with a maturity of 48 months
+04-26-2022 06:16:15,customer LastName1 FirstName1 logged in
+04-26-2022 06:16:25,LastName1 FirstName1 viewed its products
+04-26-2022 06:16:26,LastName1 FirstName1 viewed its current accounts
+04-26-2022 06:16:26,LastName1 FirstName1 viewed its debit cards
+04-26-2022 06:16:27,LastName1 FirstName1 viewed its deposits
+04-26-2022 06:16:29,LastName1 FirstName1 viewed its loans
+04-26-2022 06:16:48,LastName1 FirstName1 liquidated before maturity a deposit of 2000.0RON
+04-26-2022 06:17:07,LastName1 FirstName1 generated a statement for the current account with IBAN RO09FBOR58471555387598770036691156
