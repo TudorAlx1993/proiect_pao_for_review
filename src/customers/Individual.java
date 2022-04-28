@@ -3,10 +3,11 @@ package customers;
 import address.Address;
 import configs.Codes;
 import configs.CustomerConfig;
+import configs.DataStorage;
 import exceptions.InvalidIdentificationCodeException;
 
 import java.time.LocalDate;
-import java.util.Objects;
+import java.util.*;
 
 public class Individual extends Customer {
     private String firstName;
@@ -147,5 +148,18 @@ public class Individual extends Customer {
     @Override
     public CustomerType getCustomerType() {
         return CustomerType.INDIVIDUAL;
+    }
+
+    @Override
+    public List<String> getCustomerDataForCsvWriting() {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(CustomerType.INDIVIDUAL.toString());
+        lineContent.add(this.getCustomerUniqueID());
+        lineContent.add(String.join(" ", this.lastName, this.firstName));
+        lineContent.add(this.getBirthDay().toString());
+        lineContent.addAll(super.getCustomerDataForCsvWriting());
+
+        return lineContent;
     }
 }

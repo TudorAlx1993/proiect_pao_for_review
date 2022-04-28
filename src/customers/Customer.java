@@ -19,6 +19,7 @@ import utils.Hash;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -699,4 +700,20 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
     }
 
     public abstract CustomerType getCustomerType();
+
+    private static void setNoCustomers(int noOfCustomers) {
+        Customer.noOfCustomers = noOfCustomers;
+    }
+
+    public List<String> getCustomerDataForCsvWriting() {
+        return Arrays.asList(this.hashOfPassword,
+                this.phoneNumber,
+                this.emailAddress,
+                this.address.getCountry(),
+                this.address.getCity(),
+                this.address.getZipCode(),
+                this.address.getStreetName(),
+                String.valueOf(this.address.getStreetNumber()),
+                this.address.getAdditionalInfo().equals("") ? "NA" : this.address.getAdditionalInfo());
+    }
 }

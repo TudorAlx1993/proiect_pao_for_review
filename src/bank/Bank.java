@@ -3,22 +3,22 @@ package bank;
 import address.Address;
 import audit.AuditService;
 import audit.UserType;
-import configs.ExchangeRatesConfig;
-import configs.FeesConfig;
-import configs.InterestRateConfig;
-import configs.SystemDate;
+import configs.*;
 import currency.Currency;
 import customers.Company;
 import customers.Customer;
 import customers.Individual;
+import io.CsvFileWriter;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
 import transaction.TransactionType;
 import utils.AmountFormatter;
 
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class Bank implements BankActions {
     // when I write final String
@@ -67,13 +67,13 @@ public final class Bank implements BankActions {
         for (Customer customer : this.customers)
             System.out.println(customer.toString());
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed customers");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed customers");
     }
 
     @Override
     public void sortCustomersByNoProductsDesc() {
         Collections.sort(this.customers);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"sorted customers by number of products (desc)");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "sorted customers by number of products (desc)");
     }
 
     @Override
@@ -82,13 +82,13 @@ public final class Bank implements BankActions {
         System.out.println("\t* total customers (including deleted): " + Customer.getNoOfCustomers());
         System.out.println("\t* total active customers: " + this.customers.size());
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of customers");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of customers");
     }
 
     @Override
     public void showSystemDate() {
         System.out.println("System date: " + SystemDate.getDate());
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the system date");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the system date");
     }
 
     @Override
@@ -150,7 +150,7 @@ public final class Bank implements BankActions {
 
         this.customers.add(customer);
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"added a new customer: "+customer.getCustomerName());
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "added a new customer: " + customer.getCustomerName());
     }
 
     @Override
@@ -178,7 +178,7 @@ public final class Bank implements BankActions {
         System.out.println("\t* no of deposits: " + countDeposits);
         System.out.println("\t* no of loans: " + countLoans);
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of products");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of products");
     }
 
 
@@ -200,7 +200,7 @@ public final class Bank implements BankActions {
             System.out.println(message);
         }
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the summary of liquidity");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of liquidity");
     }
 
     @Override
@@ -211,7 +211,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setReferenceExchangeRateOfCurrencyPerRON(currency, exchangeRate);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set reference exchange rate for "+currency.getCurrencyCode()+" to "+exchangeRate+" RON");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set reference exchange rate for " + currency.getCurrencyCode() + " to " + exchangeRate + " RON");
     }
 
     @Override
@@ -223,7 +223,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setAskSpreadPercent(askSpreadPercent);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set ask spread for exchange rate to "+askSpreadPercent+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set ask spread for exchange rate to " + askSpreadPercent + "%");
     }
 
     @Override
@@ -235,7 +235,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setBidSpreadPercent(bidSpreadPercent);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set bid spread for exchange rate to "+bidSpreadPercent+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set bid spread for exchange rate to " + bidSpreadPercent + "%");
     }
 
     @Override
@@ -246,7 +246,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setLoanInterestRate(currency, interestRate);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set loan interest rate for "+currency.getCurrencyCode()+" to "+interestRate+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set loan interest rate for " + currency.getCurrencyCode() + " to " + interestRate + "%");
     }
 
     @Override
@@ -256,14 +256,14 @@ public final class Bank implements BankActions {
         System.out.println("\t* external payment fee: " + FeesConfig.getExternalPaymentFeePercent() + "%");
         System.out.println("\t* atm withdrawn fee: " + FeesConfig.getAtmWitdrawFeePercent() + "%");
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed the fees");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the fees");
     }
 
     @Override
     public void showExchangeRates() {
         ExchangeRateService.showAvailableExchangeRates();
 
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"viewed exchange rates");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed exchange rates");
     }
 
     @Override
@@ -281,7 +281,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setDepositInterestRate(currency, maturity, interestRate);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set deposit interest rate for "+currency.getCurrencyCode()+" and maturity="+maturity+" months to "+interestRate+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set deposit interest rate for " + currency.getCurrencyCode() + " and maturity=" + maturity + " months to " + interestRate + "%");
     }
 
     @Override
@@ -299,7 +299,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setInternalPaymentFeePercent(internalPaymentFeePercent);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set internal payment fee to "+internalPaymentFeePercent+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set internal payment fee to " + internalPaymentFeePercent + "%");
     }
 
     @Override
@@ -317,7 +317,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setExternalPaymentFeePercent(externalPaymentFeePercent);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set external payment fee to "+externalPaymentFeePercent+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set external payment fee to " + externalPaymentFeePercent + "%");
     }
 
     @Override
@@ -335,7 +335,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setAtmWitdrawFeePercent(atmWithdrawFeePercent);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set atm withdraw fee to "+atmWithdrawFeePercent+"%");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set atm withdraw fee to " + atmWithdrawFeePercent + "%");
     }
 
     @Override
@@ -349,7 +349,7 @@ public final class Bank implements BankActions {
         }
 
         SystemDate.setDate(newDate);
-        AuditService.addLoggingData(UserType.BANK_MANAGER,"set system date to "+newDate);
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set system date to " + newDate);
 
         this.checkForDepositsThatReachedMaturity();
         this.checkForLoansThatReachedPaymentDay();
@@ -442,7 +442,7 @@ public final class Bank implements BankActions {
                             loan.updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment();
                         }
 
-                        if (indexToNextPaymentDate==(loan.getMaturityInMonths()-1)) {
+                        if (indexToNextPaymentDate == (loan.getMaturityInMonths() - 1)) {
                             System.out.println("ok");
                             productIndexes.add(Integer.valueOf(productIndex));
                             break;
@@ -622,6 +622,42 @@ public final class Bank implements BankActions {
 
     public List<Customer> getCustomers() {
         return this.customers;
+    }
+
+    public void saveCustomersToCsvFile() {
+        final String directoryPath = DataStorage.getPath();
+
+        // first save the no of total customers (including those already deleted)
+        String fileName = Paths.get(directoryPath, "no_of_customers.csv").toString();
+        List<List<String>> fileLines = new ArrayList<>();
+        // first we set the header of the csv file
+        fileLines.add(List.of("no_of_customers".toUpperCase()));
+        fileLines.add(List.of(String.valueOf(Customer.getNoOfCustomers())));
+        CsvFileWriter.getInstance().saveData(fileName, fileLines);
+
+        // save the customers to the csv file
+        fileName = Paths.get(directoryPath, "customers.csv").toString();
+        fileLines = new ArrayList<>();
+        fileLines.add(Arrays.asList("customer_type",
+                        "customer_id",
+                        "customer_name",
+                        "birth_date",
+                        "hash_of_password",
+                        "phone_number",
+                        "email_address",
+                        "address_country",
+                        "address_city",
+                        "address_zip_code",
+                        "address_street_name",
+                        "address_street_number",
+                        "address_additional_info")
+                .stream()
+                .map(element -> element.toUpperCase())
+                .collect(Collectors.toList()));
+        for (Customer customer : this.customers)
+            fileLines.add(customer.getCustomerDataForCsvWriting());
+
+        CsvFileWriter.getInstance().saveData(fileName, fileLines);
     }
 }
 

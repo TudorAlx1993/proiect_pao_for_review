@@ -9,9 +9,12 @@ import bank.Bank;
 import audit.AuditService;
 
 import java.lang.Math;
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -177,8 +180,12 @@ public class Main {
         individual1.applyForLoan(currentAccountRON, 3000, 48, 15000);
 
         // run program in console interface
-        System.out.println("");
-        bank.runInConsole();
+        //System.out.println("");
+        //bank.runInConsole();
+
+        // save the bank customers and their products to csv files
+        bank.saveCustomersToCsvFile();
+
 
         // close the files related to audit
         AuditService.closeFiles();

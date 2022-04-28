@@ -6,6 +6,8 @@ import configs.CustomerConfig;
 import exceptions.InvalidIdentificationCodeException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Company extends Customer {
@@ -108,5 +110,18 @@ public class Company extends Customer {
     @Override
     public CustomerType getCustomerType() {
         return CustomerType.COMPANY;
+    }
+
+    @Override
+    public List<String> getCustomerDataForCsvWriting() {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(CustomerType.COMPANY.toString());
+        lineContent.add(this.getCustomerUniqueID());
+        lineContent.add(this.companyName);
+        lineContent.add(this.getBirthDay().toString());
+        lineContent.addAll(super.getCustomerDataForCsvWriting());
+
+        return lineContent;
     }
 }
