@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CurrentAccount extends Product {
     private static int noCurrentAccounts;
@@ -198,5 +200,28 @@ public class CurrentAccount extends Product {
 
     public List<TransactionLogger> getTransactions() {
         return this.transactions;
+    }
+
+
+    @Override
+    public List<String> getProductHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("iban",
+                        "amount")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getProductHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getProductDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.iban);
+        lineContent.add(String.valueOf(this.amount));
+        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }

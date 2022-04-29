@@ -184,8 +184,7 @@ public class Main {
         //bank.runInConsole();
 
         // save the bank customers and their products to csv files
-        bank.saveCustomersToCsvFile();
-
+        bank.saveCustomersAndProductsToCsvFile();
 
         // close the files related to audit
         AuditService.closeFiles();

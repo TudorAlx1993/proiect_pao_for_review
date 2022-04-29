@@ -27,7 +27,7 @@ public class AuditService {
     }
 
     private static void openFiles() {
-        AuditService.fileNames.entrySet().stream().forEach((entry) -> {
+        AuditService.fileNames.entrySet().forEach((entry) -> {
             try {
                 FileWriter file = new FileWriter(entry.getValue(), true);
                 AuditService.files.put(entry.getKey(), file);

@@ -9,7 +9,11 @@ import regulations.NationalBankRegulations;
 import utils.Hash;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DebitCard extends Product {
     private static int noDebitCards;
@@ -181,4 +185,35 @@ public class DebitCard extends Product {
     public ProductType getProductType() {
         return ProductType.DEBIT_CARD;
     }
+
+    @Override
+    public List<String> getProductHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("card_id",
+                        "expiration_data",
+                        "hash_of_pin",
+                        "name_on_card",
+                        "network_processor_name",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getProductHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getProductDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.cardId);
+        lineContent.add(expirationDate.toString());
+        lineContent.add(hashOfPin);
+        lineContent.add(this.nameOnCard);
+        lineContent.add(this.networkProcessorName);
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+
+        return lineContent;
+    }
 }
+

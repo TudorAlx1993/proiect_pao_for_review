@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class Customer implements Comparable<Customer>, CustomerOperations {
     private static int noOfCustomers;
@@ -703,6 +705,24 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
     private static void setNoCustomers(int noOfCustomers) {
         Customer.noOfCustomers = noOfCustomers;
+    }
+
+    public static List<String> getHeaderForCustomersCsvFile(){
+        return Stream.of("customer_type",
+                        "customer_id",
+                        "customer_name",
+                        "birth_date",
+                        "hash_of_password",
+                        "phone_number",
+                        "email_address",
+                        "address_country",
+                        "address_city",
+                        "address_zip_code",
+                        "address_street_name",
+                        "address_street_number",
+                        "address_additional_info")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
     }
 
     public List<String> getCustomerDataForCsvWriting() {

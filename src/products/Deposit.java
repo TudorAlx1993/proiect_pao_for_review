@@ -9,7 +9,11 @@ import utils.AmountFormatter;
 
 import java.security.InvalidParameterException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Deposit extends Product {
     private static int noOfDeposits;
@@ -54,7 +58,7 @@ public class Deposit extends Product {
     }
 
     public boolean doesDepositReachedMaturity() {
-        return SystemDate.getDate().compareTo(this.depositMaturity)>=0;
+        return SystemDate.getDate().compareTo(this.depositMaturity) >= 0;
     }
 
     private double calculateDepositInterest(double depositAmount, double interestRate, int maturityInMonths) {
@@ -150,6 +154,36 @@ public class Deposit extends Product {
     @Override
     public ProductType getProductType() {
         return ProductType.DEPOSIT;
+    }
+
+    @Override
+    public List<String> getProductHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("deposit_id",
+                        "deposit_amount",
+                        "interest_rate",
+                        "interest_amount",
+                        "deposit_maturity",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getProductHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getProductDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.depositId);
+        lineContent.add(String.valueOf(this.depositAmount));
+        lineContent.add(String.valueOf(this.interestRate));
+        lineContent.add(String.valueOf(this.interest));
+        lineContent.add(this.depositMaturity.toString());
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }
 

@@ -4,8 +4,11 @@ import configs.SystemDate;
 import utils.AmountFormatter;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TransactionLogger implements Comparable<TransactionLogger> {
     private final String transactionId;
@@ -90,5 +93,26 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
     @Override
     public int compareTo(TransactionLogger transaction) {
         return this.date.compareTo(transaction.date);
+    }
+
+    public static List<String> getTransactionHeaderForCsvFile() {
+        return Stream.of("transaction_id",
+                        "date",
+                        "transaction_type",
+                        "amount",
+                        "transaction_detail",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getTransactionDataForCsvWriting(String iban) {
+        return Stream.of(this.transactionId,
+                        this.date.toString(),
+                        this.transactionType,
+                        String.valueOf(this.amount),
+                        this.transactionDetail,
+                        iban)
+                .collect(Collectors.toList());
     }
 }

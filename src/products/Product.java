@@ -3,8 +3,12 @@ package products;
 import currency.Currency;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class Product {
     private final Currency currency;
@@ -68,5 +72,20 @@ public abstract class Product {
 
         Product product = (Product) object;
         return this.currency.equals(product.currency) && this.openDate.equals(product.openDate);
+    }
+
+    public List<String> getProductDataForCsvWriting(String customerID) {
+        // pun si customerID ca sa pot sa asociez produsul cu clientul corespunzator
+        return Arrays.asList(this.currency.getCurrencyCode(),
+                this.openDate.toString(),
+                customerID);
+    }
+
+    public List<String> getProductHeaderForCsvFile() {
+        return Stream.of("currency_code",
+                        "opening_date",
+                        "customer_id")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
     }
 }

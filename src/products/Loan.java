@@ -13,7 +13,10 @@ import utils.AmountFormatter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Loan extends Product {
     private static int noOfLoans;
@@ -237,5 +240,37 @@ public class Loan extends Product {
     @Override
     public ProductType getProductType() {
         return ProductType.LOAN;
+    }
+
+    @Override
+    public List<String> getProductHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("loan_id",
+                        "interest_rate",
+                        "maturity_in_months",
+                        "index_to_next_payment",
+                        "loan_initial_amount",
+                        "loan_current_amount",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getProductHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getProductDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.loanId);
+        lineContent.add(String.valueOf(this.interestRate));
+        lineContent.add(String.valueOf(this.maturityInMonths));
+        lineContent.add(String.valueOf(this.indexToNextPaymentDate));
+        lineContent.add(String.valueOf(this.loanInitialAmount));
+        lineContent.add(String.valueOf(this.loanCurrentAmount));
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }

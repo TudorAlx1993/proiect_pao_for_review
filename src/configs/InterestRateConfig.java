@@ -1,7 +1,5 @@
 package configs;
 
-import audit.AuditService;
-import audit.UserType;
 import currency.Currency;
 import exceptions.InvalidDepositMaturityException;
 import exceptions.InvalidInterestRateException;
