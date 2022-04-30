@@ -149,6 +149,10 @@ public class CurrentAccount extends Product {
         return CurrentAccount.noCurrentAccounts;
     }
 
+    public static void setNoCurrentAccounts(int noCurrentAccounts){
+        CurrentAccount.noCurrentAccounts=noCurrentAccounts;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(),

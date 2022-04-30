@@ -105,6 +105,10 @@ public class Deposit extends Product {
         return Deposit.noOfDeposits;
     }
 
+    public static void setNoOfDeposits(int noOfDeposits){
+        Deposit.noOfDeposits=noOfDeposits;
+    }
+
     public double getInterestAtMaturity() {
         return this.interest;
     }

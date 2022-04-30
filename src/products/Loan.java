@@ -142,6 +142,10 @@ public class Loan extends Product {
         return Loan.noOfLoans;
     }
 
+    public static void setNoOfLoans(int noOfLoans){
+        Loan.noOfLoans=noOfLoans;
+    }
+
     public String getLoanId() {
         return this.loanId;
     }

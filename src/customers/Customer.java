@@ -640,6 +640,10 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return Customer.noOfCustomers;
     }
 
+    public static void setNoOfCustomers(int noOfCustomers){
+        Customer.noOfCustomers=noOfCustomers;
+    }
+
     public String getHashOfPassword() {
         return this.hashOfPassword;
     }

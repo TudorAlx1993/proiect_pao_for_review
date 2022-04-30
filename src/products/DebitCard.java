@@ -113,6 +113,10 @@ public class DebitCard extends Product {
         return DebitCard.noDebitCards;
     }
 
+    public static void setNoDebitCards(int noDebitCards){
+        DebitCard.noDebitCards=noDebitCards;
+    }
+
     public String getCardId() {
         return this.cardId;
     }

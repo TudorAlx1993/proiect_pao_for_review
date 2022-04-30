@@ -1,19 +1,17 @@
 import address.Address;
-import audit.UserType;
 import configs.*;
 import currency.Currency;
 import customers.Company;
+import customers.Customer;
 import customers.Individual;
+import io.CsvFileReader;
 import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;
 
 import java.lang.Math;
-import java.lang.reflect.Field;
+import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class Main {
@@ -183,8 +181,15 @@ public class Main {
         //System.out.println("");
         //bank.runInConsole();
 
+        // set bank's date
+        // this will generate transaction (payments of interest and principal for loans and deposits)
+        //bank.setSystemDate(29,4,2022);
+
         // save the bank customers and their products to csv files
         bank.saveCustomersAndProductsToCsvFile();
+
+        // read the bank customers and their products from csv files
+        bank.readCustomersAndProductsFromCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();

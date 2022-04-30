@@ -1,2 +1,6 @@
-NO_OF_CUSTOMERS,NO_OF_DEPOSITS,NO_OF_CURRENT_ACCOUNTS,NO_OF_DEBIT_CARDS,NO_OF_LOANS
-8,2,10,1,1
+CLASS_NAME,COUNT_OF
+customer,8
+deposit,2
+current_account,10
+debit_card,1
+loan,1

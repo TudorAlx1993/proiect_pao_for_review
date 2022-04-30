@@ -8,6 +8,7 @@ import currency.Currency;
 import customers.Company;
 import customers.Customer;
 import customers.Individual;
+import io.CsvFileReader;
 import io.CsvFileWriter;
 import products.*;
 import services.ExchangeRateService;
@@ -16,6 +17,7 @@ import transaction.TransactionLogger;
 import transaction.TransactionType;
 import utils.AmountFormatter;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
@@ -343,10 +345,10 @@ public final class Bank implements BankActions {
     @Override
     public void setSystemDate(int day, int month, int year) {
         // functia asta o utilizam pentru a verifica daca sunt deposite care au ajuns la scadenta
-        // sau daca banca un client trebuie sa plateasca dobanda + principalul pentru un credit
+        // sau daca un client trebuie sa plateasca dobanda + principalul pentru un credit
         LocalDate newDate = LocalDate.of(year, month, day);
-        if (newDate.compareTo(LocalDate.now()) < 0) {
-            System.out.println("Bank message: operation not completed (the system date cannot be before the real date).");
+        if (newDate.compareTo(SystemDate.getDate()) < 0) {
+            System.out.println("Bank message: operation not completed (the system date cannot be before the current date).");
             return;
         }
 
@@ -445,7 +447,6 @@ public final class Bank implements BankActions {
                         }
 
                         if (indexToNextPaymentDate == (loan.getMaturityInMonths() - 1)) {
-                            System.out.println("ok");
                             productIndexes.add(Integer.valueOf(productIndex));
                             break;
                         }
@@ -627,23 +628,22 @@ public final class Bank implements BankActions {
     }
 
     private List<String> getHeaderForCsvFileOfStaticVariables() {
-        return Stream.of("no_of_customers",
-                        "no_of_deposits",
-                        "no_of_current_accounts",
-                        "no_of_debit_cards",
-                        "no_of_loans")
+        return Stream.of("class_name",
+                        "count_of")
                 .map(String::toUpperCase)
                 .collect(Collectors.toList());
     }
 
-    private List<String> getStaticVariables() {
-        return Stream.of(Customer.getNoOfCustomers(),
-                        Deposit.getNoOfDeposits(),
-                        CurrentAccount.getNoCurrentAccounts(),
-                        DebitCard.getNoDebitCards(),
-                        Loan.getNoOfLoans())
-                .map(String::valueOf)
-                .collect(Collectors.toList());
+    private List<List<String>> getStaticVariables() {
+        List<List<String>> staticVariables = new ArrayList<>();
+
+        staticVariables.add(List.of("customer", String.valueOf(Customer.getNoOfCustomers())));
+        staticVariables.add(List.of("deposit", String.valueOf(Deposit.getNoOfDeposits())));
+        staticVariables.add(List.of("current_account", String.valueOf(CurrentAccount.getNoCurrentAccounts())));
+        staticVariables.add(List.of("debit_card", String.valueOf(DebitCard.getNoDebitCards())));
+        staticVariables.add(List.of("loan", String.valueOf(Loan.getNoOfLoans())));
+
+        return staticVariables;
     }
 
     public void saveCustomersAndProductsToCsvFile() {
@@ -653,7 +653,7 @@ public final class Bank implements BankActions {
         String fileName = Paths.get(directoryPath, "static_variables.csv").toString();
         final List<List<String>> staticVariableFileLines = new ArrayList<>();
         staticVariableFileLines.add(this.getHeaderForCsvFileOfStaticVariables());
-        staticVariableFileLines.add(this.getStaticVariables());
+        staticVariableFileLines.addAll(this.getStaticVariables());
         CsvFileWriter.getInstance().saveData(fileName, staticVariableFileLines);
 
         // section 2: save the information related to bank's customers
@@ -692,12 +692,65 @@ public final class Bank implements BankActions {
         final List<List<String>> transactionsFileLines = new ArrayList<>();
         transactionsFileLines.add(TransactionLogger.getTransactionHeaderForCsvFile());
         currentAccounts.forEach((currentAccount -> {
+            Collections.sort(currentAccount.getTransactions());
             currentAccount.getTransactions()
                     .forEach((transaction -> {
                         transactionsFileLines.add(transaction.getTransactionDataForCsvWriting(currentAccount.getIBAN()));
                     }));
         }));
         CsvFileWriter.getInstance().saveData(fileName, transactionsFileLines);
+    }
+
+    private List<String> getFileNamesFromDirectory(String directoryPath, String pattern) {
+        File directory = new File(directoryPath);
+        File[] filesNames = directory.listFiles();
+        if (filesNames == null) {
+            System.err.println("Directory " + directoryPath + " is empty!");
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        List<String> filesNamesWithPattern = Arrays.stream(filesNames)
+                .filter(fileName -> !fileName.isDirectory())
+                .map(File::toString)
+                .filter(fileName -> fileName.contains(pattern))
+                .toList();
+        if (filesNamesWithPattern.size() == 0) {
+            System.err.println("Directory " + directoryPath + " does not contain files with the specified patter (" + pattern + ")");
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return filesNamesWithPattern;
+    }
+
+    public void readCustomersAndProductsFromCsvFiles() {
+        final String directoryPath = DataStorage.getPath();
+        List<String> csvFilesNames = this.getFileNamesFromDirectory(directoryPath, ".csv");
+
+        // section 1: first read the static variables from the csv file
+        final String staticVariablesFileName = csvFilesNames
+                .stream()
+                .filter(csvFileName -> csvFileName.contains("static_variables"))
+                .findFirst()
+                .orElse(null);
+        this.readStaticVariablesFromCsvFile(staticVariablesFileName);
+    }
+
+    private void readStaticVariablesFromCsvFile(String fileName) {
+        CsvFileReader
+                .getInstance()
+                .readLines(fileName)
+                .forEach(line -> {
+                    List<String> lineComponents = Arrays.asList(line.split(CsvFileConfig.getFileSeparator()));
+                    String className = lineComponents.get(0);
+                    int countOf = Integer.parseInt(lineComponents.get(1));
+                    switch (className) {
+                        case "customer" -> Customer.setNoOfCustomers(countOf);
+                        case "deposit" -> Deposit.setNoOfDeposits(countOf);
+                        case "current_account" -> CurrentAccount.setNoCurrentAccounts(countOf);
+                        case "debit_card" -> DebitCard.setNoDebitCards(countOf);
+                        case "loan" -> Loan.setNoOfLoans(countOf);
+                    }
+                });
     }
 }
 
