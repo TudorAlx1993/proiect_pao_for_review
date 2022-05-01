@@ -41,10 +41,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
     }
 
     {
-        // each customer has to have at least a current account in RON
-        this.products = new ArrayList<Product>();
-        this.addCurrentAccount("RON");
-
+        this.products = new ArrayList<>();
     }
 
     @Override
@@ -52,11 +49,10 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return customer.products.size() - this.products.size();
     }
 
-    protected Customer(String password, String phoneNumber, String emailAddress, Address address) {
-        Customer.noOfCustomers += 1;
-
+    protected Customer(String password, String phoneNumber, String emailAddress, Address address, boolean readFromCsvFile) {
         try {
-            this.checkPasswordRequirments(password);
+            if (!readFromCsvFile)
+                this.checkPasswordRequirments(password);
             this.checkMailDomain(emailAddress);
             this.checkPhoneNumber(phoneNumber);
         } catch (WeakPasswordException |
@@ -66,10 +62,16 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
             System.exit(Codes.EXIT_ON_ERROR);
         }
 
-        this.hashOfPassword = Hash.computeHashOfString(password, CustomerConfig.getHashAlgorithm());
         this.phoneNumber = phoneNumber;
         this.emailAddress = emailAddress;
         this.address = address;
+
+        if (!readFromCsvFile) {
+            Customer.noOfCustomers += 1;
+            this.addCurrentAccount("RON");
+            this.hashOfPassword = Hash.computeHashOfString(password, CustomerConfig.getHashAlgorithm());
+        } else
+            this.hashOfPassword = password;
 
     }
 
@@ -640,8 +642,8 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return Customer.noOfCustomers;
     }
 
-    public static void setNoOfCustomers(int noOfCustomers){
-        Customer.noOfCustomers=noOfCustomers;
+    public static void setNoOfCustomers(int noOfCustomers) {
+        Customer.noOfCustomers = noOfCustomers;
     }
 
     public String getHashOfPassword() {
@@ -711,7 +713,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         Customer.noOfCustomers = noOfCustomers;
     }
 
-    public static List<String> getHeaderForCustomersCsvFile(){
+    public static List<String> getHeaderForCustomersCsvFile() {
         return Stream.of("customer_type",
                         "customer_id",
                         "customer_name",

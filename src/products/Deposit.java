@@ -31,6 +31,23 @@ public class Deposit extends Product {
 
     public Deposit(CurrentAccount currentAccount,
                    LocalDate openDate,
+                   String depositId,
+                   double depositAmount,
+                   double interestRate,
+                   double interest,
+                   LocalDate depositMaturity) {
+        super(currentAccount.getCurrency(), openDate);
+
+        this.currentAccount = currentAccount;
+        this.depositAmount = depositAmount;
+        this.depositId = depositId;
+        this.interest = interest;
+        this.interestRate = interestRate;
+        this.depositMaturity = depositMaturity;
+    }
+
+    public Deposit(CurrentAccount currentAccount,
+                   LocalDate openDate,
                    int maturityInMonths,
                    double depositAmount) {
         super(currentAccount.getCurrency(), openDate);
@@ -105,8 +122,8 @@ public class Deposit extends Product {
         return Deposit.noOfDeposits;
     }
 
-    public static void setNoOfDeposits(int noOfDeposits){
-        Deposit.noOfDeposits=noOfDeposits;
+    public static void setNoOfDeposits(int noOfDeposits) {
+        Deposit.noOfDeposits = noOfDeposits;
     }
 
     public double getInterestAtMaturity() {

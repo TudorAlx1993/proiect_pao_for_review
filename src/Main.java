@@ -76,7 +76,8 @@ public class Main {
                 "parola1",
                 "0799999999",
                 "firstname1.lastname1@mailserver.com.",
-                new Address("Romania", "Bucharest", "060542", "Mehadia", 12)
+                new Address("Romania", "Bucharest", "060542", "Mehadia", 12),
+                false
         );
         Individual individual2 = new Individual(
                 "FirstName2",
@@ -85,7 +86,8 @@ public class Main {
                 "parola2",
                 "0700000000",
                 "firstname2.lastname2@mailserver.com",
-                new Address("Romania", "Bucharest", "221122", "Ceahlau", 14)
+                new Address("Romania", "Bucharest", "221122", "Ceahlau", 14),
+                false
         );
         Individual individual3 = new Individual(
                 "FirstName3",
@@ -94,7 +96,8 @@ public class Main {
                 "parola3",
                 "0711111111",
                 "firstname3.lastname3@mailserver.com",
-                new Address("Romania", "Bucharest", "331144", "Moxa", 8)
+                new Address("Romania", "Bucharest", "331144", "Moxa", 8),
+                false
         );
         Individual individual4 = new Individual(
                 "FirstName4",
@@ -103,7 +106,8 @@ public class Main {
                 "parola4",
                 "0722222222",
                 "firstname4.lastname4@mailserver.com",
-                new Address("Romania", "Piatra-Neamt", "775577", "Bistritei", 3)
+                new Address("Romania", "Piatra-Neamt", "775577", "Bistritei", 3),
+                false
         );
 
         // add the invididuals customers to the bank's list of customers
@@ -120,7 +124,8 @@ public class Main {
                 "parola11",
                 "0733333333",
                 "contact@softwareintegration.ro",
-                new Address("Romania", "Timisoara", "557755", "Bega", 2)
+                new Address("Romania", "Timisoara", "557755", "Bega", 2),
+                false
         );
         Company company2 = new Company(
                 "SC Software development SRL",
@@ -129,7 +134,8 @@ public class Main {
                 "parola22",
                 "0744444444",
                 "contact@softwaredevelopment.ro",
-                new Address("Romania", "Brasov", "114411", "Turnului", 10)
+                new Address("Romania", "Brasov", "114411", "Turnului", 10),
+                false
         );
         Company company3 = new Company(
                 "SC Code Masters  SA",
@@ -138,7 +144,8 @@ public class Main {
                 "parola33",
                 "0755555555",
                 "contact@codemasters.ro",
-                new Address("Romania", "Bucharest", "440011", "Calea Victoriei", 100)
+                new Address("Romania", "Bucharest", "440011", "Calea Victoriei", 100),
+                false
         );
         Company company4 = new Company(
                 "SC Coding Anything  SA",
@@ -147,7 +154,8 @@ public class Main {
                 "parola44",
                 "0788888888",
                 "contact@codinganything.ro",
-                new Address("Romania", "Bucharest", "050044", "Piata Unirii", 15)
+                new Address("Romania", "Bucharest", "050044", "Piata Unirii", 15),
+                false
         );
 
         // add the companies to the bank's list of customers
@@ -189,6 +197,7 @@ public class Main {
         bank.saveCustomersAndProductsToCsvFile();
 
         // read the bank customers and their products from csv files
+        System.out.println("----------------");
         bank.readCustomersAndProductsFromCsvFiles();
 
         // close the files related to audit

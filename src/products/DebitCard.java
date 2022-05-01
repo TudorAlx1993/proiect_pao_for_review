@@ -30,8 +30,30 @@ public class DebitCard extends Product {
         DebitCard.noDebitCards = 0;
     }
 
-    {
-        this.cardId = this.generateUniqueID(CardConfig.getCardNumberLength(), 10);
+    public DebitCard(CurrentAccount currentAccount,
+                     String cardID,
+                     LocalDate openDate,
+                     LocalDate expirationDate,
+                     String hashOfPin,
+                     String nameOnCard,
+                     String networkProcessorName) {
+        // this constructor will be used when creating debit cards from csv files
+
+        super(currentAccount.getCurrency(), openDate);
+
+        try {
+            this.validateNetworkProcessor(networkProcessorName);
+        } catch (NotSupportedCardNetworkProcessor exception) {
+            System.err.println(exception.getMessage());
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        this.cardId = cardID;
+        this.hashOfPin = hashOfPin;
+        this.currentAccount = currentAccount;
+        this.nameOnCard = nameOnCard;
+        this.networkProcessorName = networkProcessorName.toUpperCase();
+        this.expirationDate = expirationDate;
     }
 
     public DebitCard(CurrentAccount currentAccount,
@@ -52,6 +74,7 @@ public class DebitCard extends Product {
 
         DebitCard.noDebitCards += 1;
 
+        this.cardId = this.generateUniqueID(CardConfig.getCardNumberLength(), 10);
         this.hashOfPin = Hash.computeHashOfString(pin, CardConfig.getPinHashAlg());
         this.currentAccount = currentAccount;
         this.nameOnCard = nameOnCard;
@@ -113,8 +136,8 @@ public class DebitCard extends Product {
         return DebitCard.noDebitCards;
     }
 
-    public static void setNoDebitCards(int noDebitCards){
-        DebitCard.noDebitCards=noDebitCards;
+    public static void setNoDebitCards(int noDebitCards) {
+        DebitCard.noDebitCards = noDebitCards;
     }
 
     public String getCardId() {

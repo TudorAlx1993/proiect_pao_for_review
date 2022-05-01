@@ -15,14 +15,16 @@ public class Individual extends Customer {
     // a person can't change its CNP
     private final String cnp;
 
+
     public Individual(String firstName,
                       String lastName,
                       String cnp,
                       String password,
                       String phoneNumber,
                       String emailAddress,
-                      Address address) {
-        super(password, phoneNumber, emailAddress, address);
+                      Address address,
+                      boolean readfromCsvFile) {
+        super(password, phoneNumber, emailAddress, address,readfromCsvFile);
 
         try {
             this.checkCnp(cnp);

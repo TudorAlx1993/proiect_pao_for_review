@@ -27,7 +27,20 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
                              double amount,
                              String transactionDetail,
                              LocalDate dateOfTransatcion) {
-        this.transactionId = UUID.randomUUID().toString();
+        this(UUID.randomUUID().toString(),
+                transactionType,
+                amount,
+                transactionDetail,
+                dateOfTransatcion);
+    }
+
+    public TransactionLogger(String transactionId,
+                             TransactionType transactionType,
+                             double amount,
+                             String transactionDetail,
+                             LocalDate dateOfTransatcion) {
+
+        this.transactionId = transactionId;
         this.date = dateOfTransatcion;
         this.transactionType = transactionType.toString();
         this.amount = Math.abs(amount);

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.spi.CurrencyNameProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,8 +29,7 @@ public class CurrentAccount extends Product {
     }
 
     {
-        this.amount = 0;
-        this.iban = this.generateIBAN();
+        this.transactions = new ArrayList<TransactionLogger>();
     }
 
     public CurrentAccount(Currency currency, LocalDate openDate) {
@@ -37,7 +37,17 @@ public class CurrentAccount extends Product {
 
         CurrentAccount.noCurrentAccounts += 1;
 
-        this.transactions = new ArrayList<TransactionLogger>();
+        this.amount = 0;
+        this.iban = this.generateIBAN();
+    }
+
+    public CurrentAccount(String iban,double amount,Currency currency,LocalDate openDate){
+        // this construct will be used only when creating current accounts form csv files
+
+        super(currency,openDate);
+
+        this.iban=iban;
+        this.amount=amount;
     }
 
     public CurrentAccount(Currency currency) {

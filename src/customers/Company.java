@@ -23,8 +23,9 @@ public class Company extends Customer {
                    String password,
                    String phoneNumber,
                    String emailAddress,
-                   Address address) {
-        super(password, phoneNumber, emailAddress, address);
+                   Address address,
+                   boolean readFromCsvFile) {
+        super(password, phoneNumber, emailAddress, address, readFromCsvFile);
 
         try {
             this.checkCui(cui);
