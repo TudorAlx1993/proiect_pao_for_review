@@ -2,6 +2,7 @@ import address.Address;
 import configs.*;
 import currency.Currency;
 import customers.Company;
+import customers.Customer;
 import customers.Individual;
 import products.CurrentAccount;
 import bank.Bank;
@@ -68,16 +69,20 @@ public class Main {
         bank.readCustomersAndProductsFromCsvFiles();
 
         // run program in console interface
+        // example credentials: 1930729000000 and parola1
+        // for more credentials please see the Main.java file from main branch on git
         System.out.println("");
-        bank.runInConsole();
+        //bank.runInConsole();
 
         // set bank's date
         // this will generate transaction (payments of interest and principal for loans and deposits)
         //bank.setSystemDate(29,4,2022);
 
         // save the bank customers and their products to csv files
-        //bank.saveCustomersAndProductsToCsvFile();
-        
+        bank.saveCustomersAndProductsToCsvFile();
+
+        bank.getCustomers().get(0).getProducts().forEach(System.out::println);
+
         // close the files related to audit
         AuditService.closeFiles();
     }

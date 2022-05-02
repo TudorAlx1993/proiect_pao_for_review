@@ -1,6 +1,7 @@
 package audit;
 
 import configs.Codes;
+import configs.CsvFileConfig;
 import configs.SystemDate;
 
 import java.nio.file.Files;
@@ -27,12 +28,12 @@ public class AuditService {
     }
 
     private static void openFiles() {
-        AuditService.fileNames.entrySet().forEach((entry) -> {
+        AuditService.fileNames.forEach((userType, fileName) -> {
             try {
-                FileWriter file = new FileWriter(entry.getValue(), true);
-                AuditService.files.put(entry.getKey(), file);
-                if (Files.size(Paths.get(entry.getValue())) == 0) {
-                    file.write(String.join(",", "timestamp", "action").toUpperCase() + "\n");
+                FileWriter file = new FileWriter(fileName, true);
+                AuditService.files.put(userType, file);
+                if (Files.size(Paths.get(fileName)) == 0) {
+                    file.write(String.join(",", "action", "timestamp").toUpperCase() + "\n");
                     file.flush();
                 }
             } catch (IOException exception) {
@@ -65,7 +66,7 @@ public class AuditService {
 
     private static void writeToFile(FileWriter file, String message) {
         String timestamp = AuditService.getTimeStamp();
-        String line = String.join(",", timestamp, message) + "\n";
+        String line = String.join(CsvFileConfig.getFileSeparator(), message,timestamp) + "\n";
         try {
             file.write(line);
             file.flush();
@@ -77,14 +78,13 @@ public class AuditService {
     }
 
     public static void addLoggingData(UserType userType, String message) {
-        FileWriter file = AuditService.files
+        AuditService.files
                 .entrySet()
                 .stream()
                 .filter(el -> el.getKey() == userType)
                 .map(Map.Entry::getValue)
                 .findFirst()
-                .get();
-        AuditService.writeToFile(file, message);
+                .ifPresent(file -> AuditService.writeToFile(file, message));
     }
 
 

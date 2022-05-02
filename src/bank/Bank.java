@@ -9,6 +9,7 @@ import customers.Company;
 import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
+import io.BankCustomersAndProductsCsvWriter;
 import io.CsvFileReader;
 import io.CsvFileWriter;
 import products.*;
@@ -629,85 +630,8 @@ public final class Bank implements BankActions {
         return this.customers;
     }
 
-    private List<String> getHeaderForCsvFileOfStaticVariables() {
-        return Stream.of("class_name",
-                        "count_of")
-                .map(String::toUpperCase)
-                .collect(Collectors.toList());
-    }
-
-    private List<List<String>> getStaticVariables() {
-        List<List<String>> staticVariables = new ArrayList<>();
-
-        staticVariables.add(List.of("customer", String.valueOf(Customer.getNoOfCustomers())));
-        staticVariables.add(List.of("deposit", String.valueOf(Deposit.getNoOfDeposits())));
-        staticVariables.add(List.of("current_account", String.valueOf(CurrentAccount.getNoCurrentAccounts())));
-        staticVariables.add(List.of("debit_card", String.valueOf(DebitCard.getNoDebitCards())));
-        staticVariables.add(List.of("loan", String.valueOf(Loan.getNoOfLoans())));
-
-        return staticVariables;
-    }
-
     public void saveCustomersAndProductsToCsvFile() {
-        final String directoryPath = DataStorage.getPath();
-
-        // section 1: save the system date
-        String fileName = Paths.get(directoryPath, "system_date.csv").toString();
-        final List<List<String>> systemDateFileLines = new ArrayList<>();
-        systemDateFileLines.add(SystemDate.getSystemDateHeaderForCsvFile());
-        systemDateFileLines.add(List.of(SystemDate.getDate().toString()));
-        CsvFileWriter.getInstance().saveData(fileName, systemDateFileLines);
-
-        // section 2: save the information related static variables (count of customers and products)
-        fileName = Paths.get(directoryPath, "static_variables.csv").toString();
-        final List<List<String>> staticVariableFileLines = new ArrayList<>();
-        staticVariableFileLines.add(this.getHeaderForCsvFileOfStaticVariables());
-        staticVariableFileLines.addAll(this.getStaticVariables());
-        CsvFileWriter.getInstance().saveData(fileName, staticVariableFileLines);
-
-        // section 3: save the information related to bank's customers
-        fileName = Paths.get(directoryPath, "customers.csv").toString();
-        final List<List<String>> customersFileLines = new ArrayList<>();
-        customersFileLines.add(Customer.getHeaderForCustomersCsvFile());
-        this.customers.forEach((customer) -> {
-            customersFileLines.add(customer.getCustomerDataForCsvWriting());
-        });
-        CsvFileWriter.getInstance().saveData(fileName, customersFileLines);
-
-        // section 4: save the information related to the customer's products
-        final Map<ProductType, List<List<String>>> productsFileLines = new HashMap<>();
-        final ArrayList<CurrentAccount> currentAccounts = new ArrayList<>();
-        this.customers
-                .forEach((customer) -> {
-                    customer.getProducts()
-                            .forEach((product -> {
-                                ProductType productType = product.getProductType();
-                                if (!(productsFileLines.containsKey(productType))) {
-                                    productsFileLines.put(productType, new ArrayList<>());
-                                    productsFileLines.get(productType).add(product.getProductHeaderForCsvFile());
-                                }
-                                productsFileLines.get(productType).add(product.getProductDataForCsvWriting(customer.getCustomerUniqueID()));
-
-                                if (productType == ProductType.CURRENT_ACCOUNT)
-                                    currentAccounts.add((CurrentAccount) product);
-                            }));
-                });
-        productsFileLines.forEach((key, value) -> CsvFileWriter.getInstance().saveData(Paths.get(directoryPath, key.toString() + ".csv").toString().toLowerCase(), value));
-
-        // section 5: save the historical transactions of the current accounts
-        // toate tranzactiile (indiferent de contul curent) vor fi salvata in acelasi fisier
-        // pe fiecare linie din fisierul csv va fi salvat inclusiv id-ul contului curent (IBAN) pentru a sti carui cont curent este asociata o anumita tranzactie
-        fileName = Paths.get(directoryPath, "transaction_logger.csv").toString();
-        final List<List<String>> transactionsFileLines = new ArrayList<>();
-        transactionsFileLines.add(TransactionLogger.getTransactionHeaderForCsvFile());
-        currentAccounts.forEach((currentAccount -> {
-            Collections.sort(currentAccount.getTransactions());
-            currentAccount.getTransactions()
-                    .forEach((transaction -> {
-                        transactionsFileLines.add(transaction.getTransactionDataForCsvWriting(currentAccount.getIBAN()));
-                    }));
-        }));
-        CsvFileWriter.getInstance().saveData(fileName, transactionsFileLines);
+        BankCustomersAndProductsCsvWriter.getInstance().save(this);
     }
 
     private List<String> getFileNamesFromDirectory(String directoryPath, String pattern) {
@@ -723,8 +647,9 @@ public final class Bank implements BankActions {
                 .map(File::toString)
                 .filter(fileName -> fileName.contains(pattern))
                 .toList();
+
         if (filesNamesWithPattern.size() == 0) {
-            System.err.println("Directory " + directoryPath + " does not contain files with the specified patter (" + pattern + ")");
+            System.err.println("Directory " + directoryPath + " does not contain files with the specified pattern (" + pattern + ")");
             System.exit(Codes.EXIT_ON_ERROR);
         }
 
@@ -733,7 +658,7 @@ public final class Bank implements BankActions {
 
     public void readCustomersAndProductsFromCsvFiles() {
         final String directoryPath = DataStorage.getPath();
-        List<String> csvFilesNames = this.getFileNamesFromDirectory(directoryPath, ".csv");
+        List<String> csvFilesNames = this.getFileNamesFromDirectory(directoryPath, CsvFileConfig.getFileExtension());
 
         // section 1: read the system date
         final String systemDateFileName = this.getFileNameBasedOnPattern(csvFilesNames, "system_date");
@@ -751,40 +676,74 @@ public final class Bank implements BankActions {
         // section 4: read the csv files related to products
         // also associate the products with the related customers
 
-        // start with the current because any other product requires the information related to a given current account
-        final String currentAccountsFileName = this.getFileNameBasedOnPattern(csvFilesNames, "current_account");
+        // start with the current accounts because any other product requires the information related to a given current account
+        ProductType productType = ProductType.CURRENT_ACCOUNT;
+        final String currentAccountsFileName = this.getFileNameBasedOnPattern(csvFilesNames, productType.toString().toLowerCase());
         final List<List<String>> fileCurrentAccounts = this.readCsvFile(currentAccountsFileName);
-        // we need to associate the current accounts to the customer -> hashmap
-        // because we used ordered collection both when writing and reading the first current account for each customer will be denominated in RON
-        final Map<String, List<CurrentAccount>> customersAndCurrentAccounts = this.createCurrentAccountsBasedOnFileContent(fileCurrentAccounts);
+        // we need to associate each current account to the right customer -> hashmap
+        // because we used ordered collection (ArrayList) both when writing and reading the first current account for each customer will be denominated in RON
+        final Map<String, List<CurrentAccount>> customersIdAndCurrentAccounts = this.createProductsBasedOnFileContent(fileCurrentAccounts, productType, null);
         // associate the current accounts to the right customers
-        customers.forEach(customer -> {
-            final String customerID = customer.getCustomerUniqueID();
-            List<CurrentAccount> customerCurrentAccounts =
-                    customersAndCurrentAccounts
-                            .entrySet()
-                            .stream()
-                            .filter(entry -> entry.getKey().equals(customerID))
-                            .map(Map.Entry::getValue)
-                            .flatMap(Collection::stream)
-                            .toList();
+        this.addProductsToCustomers(customersIdAndCurrentAccounts, customers);
 
-            customer.getProducts().addAll(customerCurrentAccounts);
-        });
+        List<CurrentAccount> currentAccounts = customersIdAndCurrentAccounts
+                .values()
+                .stream()
+                .flatMap(Collection::stream)
+                .toList();
 
         // read the transactions related to the current accounts from the csv file
         final String transactionsLoggerFileName = this.getFileNameBasedOnPattern(csvFilesNames, "transaction_logger");
         final List<List<String>> fileTransactions = this.readCsvFile(transactionsLoggerFileName);
-        final Map<String, List<TransactionLogger>> currentAccountsAndTransactions = this.createTransactionsBasedOnFileContent(fileTransactions);
+        final Map<String, List<TransactionLogger>> ibansAndTransactions = this.createTransactionsBasedOnFileContent(fileTransactions);
         // associate the transactions logger to the right current acounts
-        customersAndCurrentAccounts
-                .values()
-                .stream()
-                .flatMap(Collection::stream)
-                .toList()
+        this.addTransactionsToCurrentAccounts(currentAccounts, ibansAndTransactions);
+
+        // read the debit cards from the csv file
+        productType = ProductType.DEBIT_CARD;
+        final String debitCardsFileName = this.getFileNameBasedOnPattern(csvFilesNames, productType.toString().toLowerCase());
+        final List<List<String>> fileDebitCards = this.readCsvFile(debitCardsFileName);
+        final Map<String, List<DebitCard>> customersIdAndDebitCards = this.createProductsBasedOnFileContent(fileDebitCards, productType, currentAccounts);
+        this.addProductsToCustomers(customersIdAndDebitCards, customers);
+
+        // read the deposits form the csv file
+        productType = ProductType.DEPOSIT;
+        final String depositsFileName = this.getFileNameBasedOnPattern(csvFilesNames, productType.toString().toLowerCase());
+        final List<List<String>> fileDeposits = this.readCsvFile(depositsFileName);
+        final Map<String, List<Deposit>> customersIdAndDeposits = this.createProductsBasedOnFileContent(fileDeposits, productType, currentAccounts);
+        this.addProductsToCustomers(customersIdAndDeposits, customers);
+
+        // read the loans from the csv file
+        productType = ProductType.LOAN;
+        final String loansFileName = this.getFileNameBasedOnPattern(csvFilesNames, productType.toString().toLowerCase());
+        final List<List<String>> fileLoans = this.readCsvFile(loansFileName);
+        Map<String, List<Loan>> customersIdAndLoans = this.createProductsBasedOnFileContent(fileLoans, productType, currentAccounts);
+        this.addProductsToCustomers(customersIdAndLoans, customers);
+
+        // section 5: link the customers read form the csv file to the bank's data structure related to customers
+        this.customers = customers;
+    }
+
+    private <T1 extends Product, T2 extends Customer>
+    void addProductsToCustomers(Map<String, List<T1>> customersIdAndProducts, List<T2> customers) {
+        customersIdAndProducts
+                .forEach((customerID, products) -> {
+                    customers
+                            .stream()
+                            .filter(customer -> customer.getUniqueID().equals(customerID))
+                            .findFirst()
+                            // the below line will always execute
+                            // given the logic implemented within the method that calls this method
+                            .ifPresent(customer -> customer.getProducts().addAll(products));
+                });
+    }
+
+    private void addTransactionsToCurrentAccounts(List<CurrentAccount> currentAccounts,
+                                                  Map<String, List<TransactionLogger>> ibansAndTransactions) {
+        currentAccounts
                 .forEach(currentAccount -> {
                     final String iban = currentAccount.getIBAN();
-                    List<TransactionLogger> transactions = currentAccountsAndTransactions
+                    List<TransactionLogger> transactions = ibansAndTransactions
                             .entrySet()
                             .stream()
                             .filter(entry -> entry.getKey().equals(iban))
@@ -795,146 +754,126 @@ public final class Bank implements BankActions {
                     if (transactions.size() != 0)
                         currentAccount.getTransactions().addAll(transactions);
                 });
-
-        // read the debit cards from the csv file
-        final String debitCardsFileName = this.getFileNameBasedOnPattern(csvFilesNames, "debit_card");
-        final List<List<String>> fileDebitCards = this.readCsvFile(debitCardsFileName);
-        final Map<String, List<DebitCard>> customersAndDebitCards = this.createDebitCardsBasedOnFileContent(fileDebitCards, customersAndCurrentAccounts.values().stream().flatMap(Collection::stream).toList());
-        customersAndDebitCards
-                .forEach((customerID, debitCards) -> {
-                    customers
-                            .stream()
-                            .filter(customer -> customer.getUniqueID().equals(customerID))
-                            .findFirst()
-                            .ifPresent(customer -> customer.getProducts().addAll(debitCards));
-                });
-
-        // read the deposits form the csv file
-        final String depositsFileName = this.getFileNameBasedOnPattern(csvFilesNames, "deposit");
-        final List<List<String>> fileDeposits = this.readCsvFile(depositsFileName);
-        final Map<String, List<Deposit>> customersAndDeposits = this.createDepositsBasedOnFileContent(fileDeposits, customersAndCurrentAccounts.values().stream().flatMap(Collection::stream).toList());
-        customersAndDeposits
-                .forEach((customerID, deposits) -> {
-                    customers
-                            .stream()
-                            .filter(customer -> customer.getUniqueID().equals(customerID))
-                            .findFirst()
-                            .ifPresent(customer -> customer.getProducts().addAll(deposits));
-                });
-
-        // read the loans from the csv file
-        final String loansFileName = this.getFileNameBasedOnPattern(csvFilesNames, "loan");
-        final List<List<String>> fileLoans = this.readCsvFile(loansFileName);
-        Map<String, List<Loan>> customersAndLoans = this.createLoanBasedOnFileContent(fileLoans, customersAndCurrentAccounts.values().stream().flatMap(Collection::stream).toList());
-        customersAndLoans
-                .forEach((customerID, loans) -> {
-                    customers
-                            .stream()
-                            .filter(customer -> customer.getUniqueID().equals(customerID))
-                            .findFirst()
-                            .ifPresent(customer -> customer.getProducts().addAll(loans));
-                });
-
-        this.customers = customers;
     }
 
-    private Map<String, List<Loan>> createLoanBasedOnFileContent(List<List<String>> loanFileContent, List<CurrentAccount> currentAccounts) {
-        Map<String, List<Loan>> customerAndLoans = new HashMap<>();
+    private <T extends Product> Map<String, List<T>>
+    createProductsBasedOnFileContent(List<List<String>> fileContent,
+                                     ProductType productType,
+                                     List<CurrentAccount> currentAccounts) {
+        Map<String, List<T>> customersIdsAndProducts = new HashMap<>();
 
-        loanFileContent
+        fileContent
                 .forEach(line -> {
-                    // see the csv file header to understand the bellow order
-                    final String loanId = line.get(0);
-                    final double interestRate = Double.parseDouble(line.get(1));
-                    final int maturityInMonths = Integer.parseInt(line.get(2));
-                    final int indexToNextPayment = Integer.parseInt(line.get(3));
-                    final double loanInitialAmount = Double.parseDouble(line.get(4));
-                    final double loanCurrentAmount = Double.parseDouble(line.get(5));
-                    final String associatedIban = line.get(6);
-                    final Currency currency = new Currency(line.get(7));
-                    final LocalDate openDate = DateFromString.get(line.get(8));
-                    final String customerId = line.get(9);
+                    String customerID = null;
+                    String associatedIban = null;
+                    CurrentAccount currentAccount = null;
+                    T product = null;
 
-                    CurrentAccount currentAccount = currentAccounts
-                            .stream()
-                            .filter(account -> account.getIBAN().equals(associatedIban))
-                            .toList()
-                            .get(0);
+                    switch (productType) {
+                        // for each switch's case please see the csv file header to understand the bellow order
+                        case CURRENT_ACCOUNT -> {
+                            associatedIban = line.get(0);
+                            final double currentAccountAmount = Double.parseDouble(line.get(1));
+                            final String currentAccountCurrencyCode = line.get(2);
+                            final LocalDate currentAccountOpenDate = DateFromString.get(line.get(3));
+                            customerID = line.get(4);
 
-                    Loan loan = new Loan(currentAccount, loanId, interestRate, maturityInMonths, indexToNextPayment, loanInitialAmount, loanCurrentAmount, openDate);
+                            CurrentAccount currentAccountFromFile = new CurrentAccount(associatedIban,
+                                    currentAccountAmount,
+                                    new Currency(currentAccountCurrencyCode),
+                                    currentAccountOpenDate);
+                            product = (T) currentAccountFromFile;
+                        }
+                        case DEBIT_CARD -> {
+                            final String cardID = line.get(0);
+                            final LocalDate cardExpirationDate = DateFromString.get(line.get(1));
+                            final String cardHashOfPin = line.get(2);
+                            final String nameOnCard = line.get(3);
+                            final String networkProcessor = line.get(4);
+                            associatedIban = line.get(5);
+                            final Currency cardCurrency = new Currency(line.get(6));
+                            final LocalDate cardOpenDate = DateFromString.get(line.get(7));
+                            customerID = line.get(8);
 
-                    if (!customerAndLoans.containsKey(customerId))
-                        customerAndLoans.put(customerId, new ArrayList<>());
-                    customerAndLoans.get(customerId).add(loan);
+                            currentAccount = this.getCurrentAccount(currentAccounts, associatedIban);
+
+                            DebitCard debitCard = new DebitCard(currentAccount,
+                                    cardID,
+                                    cardOpenDate,
+                                    cardExpirationDate,
+                                    cardHashOfPin,
+                                    nameOnCard,
+                                    networkProcessor);
+                            product = (T) debitCard;
+                        }
+                        case DEPOSIT -> {
+                            final String depositId = line.get(0);
+                            final double depositedAmount = Double.parseDouble(line.get(1));
+                            final double depositInterestRate = Double.parseDouble(line.get(2));
+                            final double depositInterestAmount = Double.parseDouble(line.get(3));
+                            final LocalDate depositMaturityDate = DateFromString.get(line.get(4));
+                            associatedIban = line.get(5);
+                            final Currency depositCurrency = new Currency(line.get(6));
+                            final LocalDate depositOpenDate = DateFromString.get(line.get(7));
+                            customerID = line.get(8);
+
+                            currentAccount = this.getCurrentAccount(currentAccounts, associatedIban);
+
+                            Deposit deposit = new Deposit(currentAccount,
+                                    depositOpenDate,
+                                    depositId,
+                                    depositedAmount,
+                                    depositInterestRate,
+                                    depositInterestAmount,
+                                    depositMaturityDate);
+                            product = (T) deposit;
+                        }
+                        case LOAN -> {
+                            final String loanId = line.get(0);
+                            final double loanInterestRate = Double.parseDouble(line.get(1));
+                            final int loanMaturityInMonths = Integer.parseInt(line.get(2));
+                            final int loanIndexToNextPayment = Integer.parseInt(line.get(3));
+                            final double loanInitialAmount = Double.parseDouble(line.get(4));
+                            final double loanCurrentAmount = Double.parseDouble(line.get(5));
+                            associatedIban = line.get(6);
+                            final Currency loanCurrency = new Currency(line.get(7));
+                            final LocalDate loanOpenDate = DateFromString.get(line.get(8));
+                            customerID = line.get(9);
+
+                            currentAccount = this.getCurrentAccount(currentAccounts, associatedIban);
+
+                            Loan loan = new Loan(currentAccount,
+                                    loanId,
+                                    loanInterestRate,
+                                    loanMaturityInMonths,
+                                    loanIndexToNextPayment,
+                                    loanInitialAmount,
+                                    loanCurrentAmount,
+                                    loanOpenDate);
+                            product = (T) loan;
+                        }
+                    }
+
+                    if (!customersIdsAndProducts.containsKey(customerID))
+                        customersIdsAndProducts.put(customerID, new ArrayList<>());
+                    customersIdsAndProducts.get(customerID).add(product);
                 });
 
-        return customerAndLoans;
+        return customersIdsAndProducts;
     }
 
-    private Map<String, List<Deposit>> createDepositsBasedOnFileContent(List<List<String>> depositFileContent, List<CurrentAccount> currentAccounts) {
-        Map<String, List<Deposit>> customerAndDeposits = new HashMap<>();
-
-        depositFileContent
-                .forEach(line -> {
-                    // see the csv file header to understand the bellow order
-                    final String depositId = line.get(0);
-                    final double depositedAmount = Double.parseDouble(line.get(1));
-                    final double interestRate = Double.parseDouble(line.get(2));
-                    final double interestAmount = Double.parseDouble(line.get(3));
-                    final LocalDate maturityDate = DateFromString.get(line.get(4));
-                    final String associatedIban = line.get(5);
-                    final Currency currency = new Currency(line.get(6));
-                    final LocalDate openDate = DateFromString.get(line.get(7));
-                    final String customerId = line.get(8);
-
-                    CurrentAccount currentAccount = currentAccounts
-                            .stream()
-                            .filter(account -> account.getIBAN().equals(associatedIban))
-                            .toList()
-                            .get(0);
-
-                    Deposit deposit = new Deposit(currentAccount, openDate, depositId, depositedAmount, interestRate, interestAmount, maturityDate);
-
-                    if (!customerAndDeposits.containsKey(customerId))
-                        customerAndDeposits.put(customerId, new ArrayList<>());
-                    customerAndDeposits.get(customerId).add(deposit);
-                });
-
-        return customerAndDeposits;
-    }
-
-    private Map<String, List<DebitCard>> createDebitCardsBasedOnFileContent(List<List<String>> debitCardFileContent, List<CurrentAccount> currentAccounts) {
-        Map<String, List<DebitCard>> customerAndDebitCards = new HashMap<>();
-
-        debitCardFileContent
-                .forEach(line -> {
-                    // see the csv file header to understand the bellow order
-                    final String cardID = line.get(0);
-                    final LocalDate expirationDate = DateFromString.get(line.get(1));
-                    final String hashOfPin = line.get(2);
-                    final String nameOnCard = line.get(3);
-                    final String networkProcessor = line.get(4);
-                    final String associatedIban = line.get(5);
-                    final Currency currency = new Currency(line.get(6));
-                    final LocalDate openDate = DateFromString.get(line.get(7));
-                    final String customerId = line.get(8);
-
-                    // iban is unique
-                    // we always get a list with only one element
-                    // currentAccounts list already contains all banks's current accounts
-                    CurrentAccount currentAccount = currentAccounts
-                            .stream()
-                            .filter(account -> account.getIBAN().equals(associatedIban))
-                            .toList()
-                            .get(0);
-                    DebitCard debitCard = new DebitCard(currentAccount, cardID, openDate, expirationDate, hashOfPin, nameOnCard, networkProcessor);
-
-                    if (!customerAndDebitCards.containsKey(customerId))
-                        customerAndDebitCards.put(customerId, new ArrayList<>());
-                    customerAndDebitCards.get(customerId).add(debitCard);
-                });
-
-        return customerAndDebitCards;
+    private CurrentAccount getCurrentAccount(List<CurrentAccount> currentAccounts, String iban) {
+        // iban is unique
+        // we always get a list with only one element
+        // parameter currentAccounts already contains all banks's current accounts from csv file
+        // thus this function will never return null
+        return currentAccounts
+                .stream()
+                .filter(account -> account.getIBAN().equals(iban))
+                .toList()
+                .stream()
+                .findFirst()
+                .orElse(null);
     }
 
     private Map<String, List<TransactionLogger>> createTransactionsBasedOnFileContent(List<List<String>> transactionFileContent) {
@@ -960,27 +899,6 @@ public final class Bank implements BankActions {
         return currentAccountAndTransactions;
     }
 
-    private Map<String, List<CurrentAccount>> createCurrentAccountsBasedOnFileContent(List<List<String>> currentAccountsFileContent) {
-        Map<String, List<CurrentAccount>> customerAndCurrentAccounts = new HashMap<>();
-
-        currentAccountsFileContent
-                .forEach(currentAccountLine -> {
-                    // see the csv file header to understand the bellow order
-                    String iban = currentAccountLine.get(0);
-                    double amount = Double.parseDouble(currentAccountLine.get(1));
-                    String currencyCode = currentAccountLine.get(2);
-                    LocalDate openDate = DateFromString.get(currentAccountLine.get(3));
-                    String customerID = currentAccountLine.get(4);
-
-                    CurrentAccount currentAccount = new CurrentAccount(iban, amount, new Currency(currencyCode), openDate);
-
-                    if (!customerAndCurrentAccounts.containsKey(customerID))
-                        customerAndCurrentAccounts.put(customerID, new ArrayList<>());
-                    customerAndCurrentAccounts.get(customerID).add(currentAccount);
-                });
-
-        return customerAndCurrentAccounts;
-    }
 
     private List<Customer> createCustomersBasedOnFileContent(List<List<String>> customerFileContent) {
         List<Customer> customers = new ArrayList<>();

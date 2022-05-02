@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// am facut singleton pentru ca asa am inteles din cerinta
 public final class CsvFileReader {
     private static final CsvFileReader csvFileReader = new CsvFileReader();
 
