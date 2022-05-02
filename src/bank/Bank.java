@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public final class Bank implements BankActions {
     // when I write final String
@@ -41,7 +40,7 @@ public final class Bank implements BankActions {
     // store the bank's liquidity
     private final Map<Currency, Double> liquidity;
     // store the bank's customers
-    private final List<Customer> customers;
+    private List<Customer> customers;
 
     private Bank(String bankName,
                  String motto,
@@ -826,8 +825,50 @@ public final class Bank implements BankActions {
         // read the loans from the csv file
         final String loansFileName = this.getFileNameBasedOnPattern(csvFilesNames, "loan");
         final List<List<String>> fileLoans = this.readCsvFile(loansFileName);
+        Map<String, List<Loan>> customersAndLoans = this.createLoanBasedOnFileContent(fileLoans, customersAndCurrentAccounts.values().stream().flatMap(Collection::stream).toList());
+        customersAndLoans
+                .forEach((customerID, loans) -> {
+                    customers
+                            .stream()
+                            .filter(customer -> customer.getUniqueID().equals(customerID))
+                            .findFirst()
+                            .ifPresent(customer -> customer.getProducts().addAll(loans));
+                });
 
+        this.customers = customers;
+    }
 
+    private Map<String, List<Loan>> createLoanBasedOnFileContent(List<List<String>> loanFileContent, List<CurrentAccount> currentAccounts) {
+        Map<String, List<Loan>> customerAndLoans = new HashMap<>();
+
+        loanFileContent
+                .forEach(line -> {
+                    // see the csv file header to understand the bellow order
+                    final String loanId = line.get(0);
+                    final double interestRate = Double.parseDouble(line.get(1));
+                    final int maturityInMonths = Integer.parseInt(line.get(2));
+                    final int indexToNextPayment = Integer.parseInt(line.get(3));
+                    final double loanInitialAmount = Double.parseDouble(line.get(4));
+                    final double loanCurrentAmount = Double.parseDouble(line.get(5));
+                    final String associatedIban = line.get(6);
+                    final Currency currency = new Currency(line.get(7));
+                    final LocalDate openDate = DateFromString.get(line.get(8));
+                    final String customerId = line.get(9);
+
+                    CurrentAccount currentAccount = currentAccounts
+                            .stream()
+                            .filter(account -> account.getIBAN().equals(associatedIban))
+                            .toList()
+                            .get(0);
+
+                    Loan loan = new Loan(currentAccount, loanId, interestRate, maturityInMonths, indexToNextPayment, loanInitialAmount, loanCurrentAmount, openDate);
+
+                    if (!customerAndLoans.containsKey(customerId))
+                        customerAndLoans.put(customerId, new ArrayList<>());
+                    customerAndLoans.get(customerId).add(loan);
+                });
+
+        return customerAndLoans;
     }
 
     private Map<String, List<Deposit>> createDepositsBasedOnFileContent(List<List<String>> depositFileContent, List<CurrentAccount> currentAccounts) {

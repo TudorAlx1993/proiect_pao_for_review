@@ -36,6 +36,8 @@ public class Deposit extends Product {
                    double interestRate,
                    double interest,
                    LocalDate depositMaturity) {
+        // this constructor will be used on reading from csv file
+
         super(currentAccount.getCurrency(), openDate);
 
         this.currentAccount = currentAccount;

@@ -2,17 +2,13 @@ import address.Address;
 import configs.*;
 import currency.Currency;
 import customers.Company;
-import customers.Customer;
 import customers.Individual;
-import io.CsvFileReader;
 import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;
 
 import java.lang.Math;
-import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
@@ -68,138 +64,20 @@ public class Main {
         // show the offered interest rates by bank
         InterestRateConfig.showInterestRates();
 
-        // create some customers (individuals)
-        Individual individual1 = new Individual(
-                "FirstName1",
-                "LastName1",
-                "1930729000000",
-                "parola1",
-                "0799999999",
-                "firstname1.lastname1@mailserver.com.",
-                new Address("Romania", "Bucharest", "060542", "Mehadia", 12),
-                false
-        );
-        Individual individual2 = new Individual(
-                "FirstName2",
-                "LastName2",
-                "1910422111111",
-                "parola2",
-                "0700000000",
-                "firstname2.lastname2@mailserver.com",
-                new Address("Romania", "Bucharest", "221122", "Ceahlau", 14),
-                false
-        );
-        Individual individual3 = new Individual(
-                "FirstName3",
-                "LastName3",
-                "2880304222222",
-                "parola3",
-                "0711111111",
-                "firstname3.lastname3@mailserver.com",
-                new Address("Romania", "Bucharest", "331144", "Moxa", 8),
-                false
-        );
-        Individual individual4 = new Individual(
-                "FirstName4",
-                "LastName4",
-                "2950715333333",
-                "parola4",
-                "0722222222",
-                "firstname4.lastname4@mailserver.com",
-                new Address("Romania", "Piatra-Neamt", "775577", "Bistritei", 3),
-                false
-        );
-
-        // add the invididuals customers to the bank's list of customers
-        bank.addCustomer(individual1);
-        bank.addCustomer(individual2);
-        bank.addCustomer(individual3);
-        bank.addCustomer(individual4);
-
-        // create some customers (companies)
-        Company company1 = new Company(
-                "SC Software integration SRL",
-                "111111",
-                LocalDate.of(2010, 10, 10),
-                "parola11",
-                "0733333333",
-                "contact@softwareintegration.ro",
-                new Address("Romania", "Timisoara", "557755", "Bega", 2),
-                false
-        );
-        Company company2 = new Company(
-                "SC Software development SRL",
-                "222222",
-                LocalDate.of(2005, 5, 15),
-                "parola22",
-                "0744444444",
-                "contact@softwaredevelopment.ro",
-                new Address("Romania", "Brasov", "114411", "Turnului", 10),
-                false
-        );
-        Company company3 = new Company(
-                "SC Code Masters  SA",
-                "333333",
-                LocalDate.of(2019, 10, 15),
-                "parola33",
-                "0755555555",
-                "contact@codemasters.ro",
-                new Address("Romania", "Bucharest", "440011", "Calea Victoriei", 100),
-                false
-        );
-        Company company4 = new Company(
-                "SC Coding Anything  SA",
-                "444444",
-                LocalDate.of(2015, 10, 22),
-                "parola44",
-                "0788888888",
-                "contact@codinganything.ro",
-                new Address("Romania", "Bucharest", "050044", "Piata Unirii", 15),
-                false
-        );
-
-        // add the companies to the bank's list of customers
-        bank.addCustomer(company1);
-        bank.addCustomer(company2);
-        bank.addCustomer(company3);
-        bank.addCustomer(company4);
-
-        // add new current accounts
-        individual1.addCurrentAccount("USD");
-        company4.addCurrentAccount("EUR");
-
-        // sort bank's customers
-        //bank.sortCustomersByNoProductsDesc();
-
-        // show summary about the bank's customers
-        bank.showCustomersSummary();
-        bank.showCustomers();
-
-        // make some transactions
-        // any customer has a current account in RON
-        // the first current account in RON is always the first product
-        CurrentAccount currentAccountRON = (CurrentAccount) individual1.getProducts().get(0);
-        individual1.transferMoneyToCurrentAccount(currentAccountRON, 10000);
-        individual1.createDebitCard(currentAccountRON, "1234", "VISA");
-        individual1.createDeposit(currentAccountRON, 5000, 12);
-        individual1.createDeposit(currentAccountRON, 2000, 3);
-        individual1.applyForLoan(currentAccountRON, 3000, 48, 15000);
+        // read the bank customers and their products from csv files
+        bank.readCustomersAndProductsFromCsvFiles();
 
         // run program in console interface
-        //System.out.println("");
-        //bank.runInConsole();
+        System.out.println("");
+        bank.runInConsole();
 
         // set bank's date
         // this will generate transaction (payments of interest and principal for loans and deposits)
         //bank.setSystemDate(29,4,2022);
 
         // save the bank customers and their products to csv files
-        bank.saveCustomersAndProductsToCsvFile();
-
-        // read the bank customers and their products from csv files
-        System.out.println("----------------");
-        bank.readCustomersAndProductsFromCsvFiles();
-
+        //bank.saveCustomersAndProductsToCsvFile();
+        
         // close the files related to audit
         AuditService.closeFiles();
     }

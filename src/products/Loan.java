@@ -35,6 +35,27 @@ public class Loan extends Product {
         noOfLoans = 0;
     }
 
+    public Loan(CurrentAccount currentAccount,
+                String loanId,
+                double interestRate,
+                int maturityInMonths,
+                int indexToNextPaymentDate,
+                double loanInitialAmount,
+                double loanCurrentAmount,
+                LocalDate openDate){
+        // this constructor will be used when reading from csv file
+        super(currentAccount.getCurrency(),openDate);
+
+        this.loanId = loanId;
+        this.interestRate = interestRate;
+        this.maturityInMonths = maturityInMonths;
+        this.paymentDates = this.generatePaymentDates();
+        this.indexToNextPaymentDate = indexToNextPaymentDate;
+        this.currentAccount = currentAccount;
+        this.loanInitialAmount = loanInitialAmount;
+        this.loanCurrentAmount = loanCurrentAmount;
+    }
+
     public Loan(CustomerType customerType,
                 CurrentAccount currentAccount,
                 LocalDate openDate,
@@ -42,6 +63,7 @@ public class Loan extends Product {
                 int maturityInMonths) {
 
         super(currentAccount.getCurrency(), openDate);
+
 
         try {
             this.validateInputs(amount, maturityInMonths, currentAccount.getCurrency(), customerType);
