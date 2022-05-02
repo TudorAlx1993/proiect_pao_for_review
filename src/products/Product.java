@@ -74,14 +74,14 @@ public abstract class Product {
         return this.currency.equals(product.currency) && this.openDate.equals(product.openDate);
     }
 
-    public List<String> getProductDataForCsvWriting(String customerID) {
+    public List<String> getDataForCsvWriting(String customerID) {
         // pun si customerID ca sa pot sa asociez produsul cu clientul corespunzator
         return Arrays.asList(this.currency.getCurrencyCode(),
                 this.openDate.toString(),
                 customerID);
     }
 
-    public List<String> getProductHeaderForCsvFile() {
+    public List<String> getHeaderForCsvFile() {
         return Stream.of("currency_code",
                         "opening_date",
                         "customer_id")

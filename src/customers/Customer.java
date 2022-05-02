@@ -713,7 +713,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         Customer.noOfCustomers = noOfCustomers;
     }
 
-    public static List<String> getHeaderForCustomersCsvFile() {
+    public static List<String> getHeaderForCsvFile() {
         return Stream.of("customer_type",
                         "customer_id",
                         "customer_name",
@@ -731,7 +731,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 .collect(Collectors.toList());
     }
 
-    public List<String> getCustomerDataForCsvWriting() {
+    public List<String> getDataForCsvWriting() {
         return Arrays.asList(this.hashOfPassword,
                 this.phoneNumber,
                 this.emailAddress,

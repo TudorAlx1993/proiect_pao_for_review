@@ -214,7 +214,7 @@ public class DebitCard extends Product {
     }
 
     @Override
-    public List<String> getProductHeaderForCsvFile() {
+    public List<String> getHeaderForCsvFile() {
         List<String> fileHeader = Stream.of("card_id",
                         "expiration_data",
                         "hash_of_pin",
@@ -223,13 +223,13 @@ public class DebitCard extends Product {
                         "associated_iban")
                 .map(String::toUpperCase)
                 .collect(Collectors.toList());
-        fileHeader.addAll(super.getProductHeaderForCsvFile());
+        fileHeader.addAll(super.getHeaderForCsvFile());
 
         return fileHeader;
     }
 
     @Override
-    public List<String> getProductDataForCsvWriting(String customerID) {
+    public List<String> getDataForCsvWriting(String customerID) {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(this.cardId);
@@ -238,7 +238,7 @@ public class DebitCard extends Product {
         lineContent.add(this.nameOnCard);
         lineContent.add(this.networkProcessorName);
         lineContent.add(this.currentAccount.getIBAN());
-        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
 
         return lineContent;
     }

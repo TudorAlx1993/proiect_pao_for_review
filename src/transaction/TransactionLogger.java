@@ -108,7 +108,7 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
         return this.date.compareTo(transaction.date);
     }
 
-    public static List<String> getTransactionHeaderForCsvFile() {
+    public static List<String> getHeaderForCsvFile() {
         return Stream.of("transaction_id",
                         "date",
                         "transaction_type",
@@ -119,7 +119,7 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTransactionDataForCsvWriting(String iban) {
+    public List<String> getDataForCsvWriting(String iban) {
         return Stream.of(this.transactionId,
                         this.date.toString(),
                         this.transactionType,

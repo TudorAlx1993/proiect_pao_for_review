@@ -269,7 +269,7 @@ public class Loan extends Product {
     }
 
     @Override
-    public List<String> getProductHeaderForCsvFile() {
+    public List<String> getHeaderForCsvFile() {
         List<String> fileHeader = Stream.of("loan_id",
                         "interest_rate",
                         "maturity_in_months",
@@ -279,13 +279,13 @@ public class Loan extends Product {
                         "associated_iban")
                 .map(String::toUpperCase)
                 .collect(Collectors.toList());
-        fileHeader.addAll(super.getProductHeaderForCsvFile());
+        fileHeader.addAll(super.getHeaderForCsvFile());
 
         return fileHeader;
     }
 
     @Override
-    public List<String> getProductDataForCsvWriting(String customerID) {
+    public List<String> getDataForCsvWriting(String customerID) {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(this.loanId);
@@ -295,7 +295,7 @@ public class Loan extends Product {
         lineContent.add(String.valueOf(this.loanInitialAmount));
         lineContent.add(String.valueOf(this.loanCurrentAmount));
         lineContent.add(this.currentAccount.getIBAN());
-        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
 
         return lineContent;
     }

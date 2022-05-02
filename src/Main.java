@@ -35,9 +35,6 @@ public class Main {
         bank.modifyLiquidity(usd, Math.pow(10, 6) * 8);
         bank.modifyLiquidity(chf, Math.pow(10, 6) * 3);
 
-        // show bank's liquidity summary
-        bank.showLiquiditySummary();
-
         // configure the exchange rates
         ExchangeRatesConfig.setReferenceExchangeRateOfCurrencyPerRON(eur, 5.0);
         ExchangeRatesConfig.setReferenceExchangeRateOfCurrencyPerRON(usd, 4.5);
@@ -72,16 +69,10 @@ public class Main {
         // example credentials: 1930729000000 and parola1
         // for more credentials please see the Main.java file from main branch on git
         System.out.println("");
-        //bank.runInConsole();
-
-        // set bank's date
-        // this will generate transaction (payments of interest and principal for loans and deposits)
-        //bank.setSystemDate(29,4,2022);
+        bank.runInConsole();
 
         // save the bank customers and their products to csv files
         bank.saveCustomersAndProductsToCsvFile();
-
-        bank.getCustomers().get(0).getProducts().forEach(System.out::println);
 
         // close the files related to audit
         AuditService.closeFiles();

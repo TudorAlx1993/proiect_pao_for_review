@@ -39,7 +39,7 @@ public final class CsvFileReader {
         }
 
         //remove the header of the csv file
-        // also remove the end line character
+        //also remove the end line character
         final String endLineCharacter = "\n";
         return csvFileLines
                 .stream()

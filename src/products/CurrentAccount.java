@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.spi.CurrencyNameProvider;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -218,23 +217,23 @@ public class CurrentAccount extends Product {
 
 
     @Override
-    public List<String> getProductHeaderForCsvFile() {
+    public List<String> getHeaderForCsvFile() {
         List<String> fileHeader = Stream.of("iban",
                         "amount")
                 .map(String::toUpperCase)
                 .collect(Collectors.toList());
-        fileHeader.addAll(super.getProductHeaderForCsvFile());
+        fileHeader.addAll(super.getHeaderForCsvFile());
 
         return fileHeader;
     }
 
     @Override
-    public List<String> getProductDataForCsvWriting(String customerID) {
+    public List<String> getDataForCsvWriting(String customerID) {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(this.iban);
         lineContent.add(String.valueOf(this.amount));
-        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
 
         return lineContent;
     }

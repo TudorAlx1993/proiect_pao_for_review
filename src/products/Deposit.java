@@ -180,7 +180,7 @@ public class Deposit extends Product {
     }
 
     @Override
-    public List<String> getProductHeaderForCsvFile() {
+    public List<String> getHeaderForCsvFile() {
         List<String> fileHeader = Stream.of("deposit_id",
                         "deposit_amount",
                         "interest_rate",
@@ -189,13 +189,13 @@ public class Deposit extends Product {
                         "associated_iban")
                 .map(String::toUpperCase)
                 .collect(Collectors.toList());
-        fileHeader.addAll(super.getProductHeaderForCsvFile());
+        fileHeader.addAll(super.getHeaderForCsvFile());
 
         return fileHeader;
     }
 
     @Override
-    public List<String> getProductDataForCsvWriting(String customerID) {
+    public List<String> getDataForCsvWriting(String customerID) {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(this.depositId);
@@ -204,7 +204,7 @@ public class Deposit extends Product {
         lineContent.add(String.valueOf(this.interest));
         lineContent.add(this.depositMaturity.toString());
         lineContent.add(this.currentAccount.getIBAN());
-        lineContent.addAll(super.getProductDataForCsvWriting(customerID));
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
 
         return lineContent;
     }

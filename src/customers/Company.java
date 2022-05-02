@@ -114,14 +114,14 @@ public class Company extends Customer {
     }
 
     @Override
-    public List<String> getCustomerDataForCsvWriting() {
+    public List<String> getDataForCsvWriting() {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(CustomerType.COMPANY.toString());
         lineContent.add(this.getCustomerUniqueID());
         lineContent.add(this.companyName);
         lineContent.add(this.getBirthDay().toString());
-        lineContent.addAll(super.getCustomerDataForCsvWriting());
+        lineContent.addAll(super.getDataForCsvWriting());
 
         return lineContent;
     }

@@ -3,7 +3,6 @@ package customers;
 import address.Address;
 import configs.Codes;
 import configs.CustomerConfig;
-import configs.DataStorage;
 import exceptions.InvalidIdentificationCodeException;
 
 import java.time.LocalDate;
@@ -153,14 +152,14 @@ public class Individual extends Customer {
     }
 
     @Override
-    public List<String> getCustomerDataForCsvWriting() {
+    public List<String> getDataForCsvWriting() {
         List<String> lineContent = new ArrayList<>();
 
         lineContent.add(CustomerType.INDIVIDUAL.toString());
         lineContent.add(this.getCustomerUniqueID());
         lineContent.add(String.join(" ", this.lastName, this.firstName));
         lineContent.add(this.getBirthDay().toString());
-        lineContent.addAll(super.getCustomerDataForCsvWriting());
+        lineContent.addAll(super.getDataForCsvWriting());
 
         return lineContent;
     }
