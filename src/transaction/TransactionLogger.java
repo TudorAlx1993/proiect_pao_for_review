@@ -4,8 +4,11 @@ import configs.SystemDate;
 import utils.AmountFormatter;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TransactionLogger implements Comparable<TransactionLogger> {
     private final String transactionId;
@@ -24,7 +27,20 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
                              double amount,
                              String transactionDetail,
                              LocalDate dateOfTransatcion) {
-        this.transactionId = UUID.randomUUID().toString();
+        this(UUID.randomUUID().toString(),
+                transactionType,
+                amount,
+                transactionDetail,
+                dateOfTransatcion);
+    }
+
+    public TransactionLogger(String transactionId,
+                             TransactionType transactionType,
+                             double amount,
+                             String transactionDetail,
+                             LocalDate dateOfTransatcion) {
+
+        this.transactionId = transactionId;
         this.date = dateOfTransatcion;
         this.transactionType = transactionType.toString();
         this.amount = Math.abs(amount);
@@ -90,5 +106,26 @@ public class TransactionLogger implements Comparable<TransactionLogger> {
     @Override
     public int compareTo(TransactionLogger transaction) {
         return this.date.compareTo(transaction.date);
+    }
+
+    public static List<String> getHeaderForCsvFile() {
+        return Stream.of("transaction_id",
+                        "date",
+                        "transaction_type",
+                        "amount",
+                        "transaction_detail",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getDataForCsvWriting(String iban) {
+        return Stream.of(this.transactionId,
+                        this.date.toString(),
+                        this.transactionType,
+                        String.valueOf(this.amount),
+                        this.transactionDetail,
+                        iban)
+                .collect(Collectors.toList());
     }
 }

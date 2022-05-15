@@ -1,0 +1,28 @@
+ACTION,TIMESTAMP
+set system date to 2022-07-01,07-01-2022 21:54:37
+logged in,07-01-2022 21:58:54
+viewed the system date,07-01-2022 21:58:57
+logged in,07-01-2022 22:01:48
+viewed the summary of liquidity,07-01-2022 22:01:53
+logged in,07-01-2022 22:03:45
+viewed the summary of liquidity,07-01-2022 22:03:46
+logged in,07-01-2022 22:06:37
+viewed customers,07-01-2022 22:07:05
+viewed the summary of customers,07-01-2022 22:07:15
+viewed the summary of customers,07-01-2022 22:07:36
+viewed the summary of products,07-01-2022 22:07:45
+sorted customers by number of products (desc),07-01-2022 22:07:53
+viewed customers,07-01-2022 22:08:16
+viewed the summary of liquidity,07-01-2022 22:08:39
+viewed the system date,07-01-2022 22:08:51
+viewed the fees,07-01-2022 22:09:06
+viewed the interest rates,07-01-2022 22:09:17
+viewed exchange rates,07-01-2022 22:09:23
+set reference exchange rate for USD to 4.4444 RON,07-01-2022 22:10:19
+viewed exchange rates,07-01-2022 22:10:35
+set reference exchange rate for USD to 4.5 RON,07-01-2022 22:11:04
+viewed exchange rates,07-01-2022 22:11:09
+logged in,07-01-2022 22:17:56
+viewed the system date,07-01-2022 22:18:01
+set system date to 2022-09-10,09-10-2022 22:18:24
+viewed the system date,09-10-2022 22:18:28

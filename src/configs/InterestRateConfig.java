@@ -127,7 +127,6 @@ public final class InterestRateConfig {
             }
         } else
             System.out.println("\nThe interest rates for deposits are not yet set!");
-
     }
 
     public static void setDepositInterestRate(Currency currency, int maturity, double interestRate) {

@@ -9,7 +9,11 @@ import regulations.NationalBankRegulations;
 import utils.Hash;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DebitCard extends Product {
     private static int noDebitCards;
@@ -26,8 +30,30 @@ public class DebitCard extends Product {
         DebitCard.noDebitCards = 0;
     }
 
-    {
-        this.cardId = this.generateUniqueID(CardConfig.getCardNumberLength(), 10);
+    public DebitCard(CurrentAccount currentAccount,
+                     String cardID,
+                     LocalDate openDate,
+                     LocalDate expirationDate,
+                     String hashOfPin,
+                     String nameOnCard,
+                     String networkProcessorName) {
+        // this constructor will be used when creating debit cards from csv files
+
+        super(currentAccount.getCurrency(), openDate);
+
+        try {
+            this.validateNetworkProcessor(networkProcessorName);
+        } catch (NotSupportedCardNetworkProcessor exception) {
+            System.err.println(exception.getMessage());
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        this.cardId = cardID;
+        this.hashOfPin = hashOfPin;
+        this.currentAccount = currentAccount;
+        this.nameOnCard = nameOnCard;
+        this.networkProcessorName = networkProcessorName.toUpperCase();
+        this.expirationDate = expirationDate;
     }
 
     public DebitCard(CurrentAccount currentAccount,
@@ -48,6 +74,7 @@ public class DebitCard extends Product {
 
         DebitCard.noDebitCards += 1;
 
+        this.cardId = this.generateUniqueID(CardConfig.getCardNumberLength(), 10);
         this.hashOfPin = Hash.computeHashOfString(pin, CardConfig.getPinHashAlg());
         this.currentAccount = currentAccount;
         this.nameOnCard = nameOnCard;
@@ -107,6 +134,10 @@ public class DebitCard extends Product {
 
     public static int getNoDebitCards() {
         return DebitCard.noDebitCards;
+    }
+
+    public static void setNoDebitCards(int noDebitCards) {
+        DebitCard.noDebitCards = noDebitCards;
     }
 
     public String getCardId() {
@@ -181,4 +212,35 @@ public class DebitCard extends Product {
     public ProductType getProductType() {
         return ProductType.DEBIT_CARD;
     }
+
+    @Override
+    public List<String> getHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("card_id",
+                        "expiration_data",
+                        "hash_of_pin",
+                        "name_on_card",
+                        "network_processor_name",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.cardId);
+        lineContent.add(expirationDate.toString());
+        lineContent.add(hashOfPin);
+        lineContent.add(this.nameOnCard);
+        lineContent.add(this.networkProcessorName);
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
+
+        return lineContent;
+    }
 }
+

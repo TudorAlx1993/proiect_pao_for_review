@@ -6,6 +6,8 @@ import configs.CustomerConfig;
 import exceptions.InvalidIdentificationCodeException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Company extends Customer {
@@ -21,8 +23,9 @@ public class Company extends Customer {
                    String password,
                    String phoneNumber,
                    String emailAddress,
-                   Address address) {
-        super(password, phoneNumber, emailAddress, address);
+                   Address address,
+                   boolean readFromCsvFile) {
+        super(password, phoneNumber, emailAddress, address, readFromCsvFile);
 
         try {
             this.checkCui(cui);
@@ -108,5 +111,18 @@ public class Company extends Customer {
     @Override
     public CustomerType getCustomerType() {
         return CustomerType.COMPANY;
+    }
+
+    @Override
+    public List<String> getDataForCsvWriting() {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(CustomerType.COMPANY.toString());
+        lineContent.add(this.getCustomerUniqueID());
+        lineContent.add(this.companyName);
+        lineContent.add(this.getBirthDay().toString());
+        lineContent.addAll(super.getDataForCsvWriting());
+
+        return lineContent;
     }
 }

@@ -1,14 +1,15 @@
 package bank;
 
 import address.Address;
-import configs.ExchangeRatesConfig;
-import configs.FeesConfig;
-import configs.InterestRateConfig;
-import configs.SystemDate;
+import audit.AuditService;
+import audit.UserType;
+import configs.*;
 import currency.Currency;
 import customers.Company;
 import customers.Customer;
 import customers.Individual;
+import io.BankCustomerAndProductsCsvReader;
+import io.BankCustomersAndProductsCsvWriter;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
@@ -32,7 +33,7 @@ public final class Bank implements BankActions {
     // store the bank's liquidity
     private final Map<Currency, Double> liquidity;
     // store the bank's customers
-    private final List<Customer> customers;
+    private List<Customer> customers;
 
     private Bank(String bankName,
                  String motto,
@@ -64,12 +65,14 @@ public final class Bank implements BankActions {
         System.out.println("\nCustomers details:\n");
         for (Customer customer : this.customers)
             System.out.println(customer.toString());
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed customers");
     }
 
     @Override
     public void sortCustomersByNoProductsDesc() {
         Collections.sort(this.customers);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "sorted customers by number of products (desc)");
     }
 
     @Override
@@ -77,11 +80,14 @@ public final class Bank implements BankActions {
         System.out.println("\nCustomers details (summary):");
         System.out.println("\t* total customers (including deleted): " + Customer.getNoOfCustomers());
         System.out.println("\t* total active customers: " + this.customers.size());
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of customers");
     }
 
     @Override
-    public void showSystemDate(){
-        System.out.println("System date: "+SystemDate.getDate());
+    public void showSystemDate() {
+        System.out.println("System date: " + SystemDate.getDate());
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the system date");
     }
 
     @Override
@@ -125,7 +131,7 @@ public final class Bank implements BankActions {
             System.out.print("Enter your last name: ");
             String lastName = scanner.nextLine();
 
-            customer = new Individual(firstName, lastName, cnp, password, phoneNumber, emailAddress, address);
+            customer = new Individual(firstName, lastName, cnp, password, phoneNumber, emailAddress, address, false);
         } else {
             System.out.print("Enter the company name: ");
             String companyName = scanner.nextLine();
@@ -138,10 +144,12 @@ public final class Bank implements BankActions {
             System.out.print("Enter the year of the establishment date: ");
             int year = scanner.nextInt();
 
-            customer = new Company(companyName, cui, LocalDate.of(year, month, day), password, phoneNumber, emailAddress, address);
+            customer = new Company(companyName, cui, LocalDate.of(year, month, day), password, phoneNumber, emailAddress, address, false);
         }
 
         this.customers.add(customer);
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "added a new customer: " + customer.getCustomerName());
     }
 
     @Override
@@ -168,6 +176,8 @@ public final class Bank implements BankActions {
         System.out.println("\t* no of debit cards: " + countDebitCards);
         System.out.println("\t* no of deposits: " + countDeposits);
         System.out.println("\t* no of loans: " + countLoans);
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of products");
     }
 
 
@@ -188,6 +198,8 @@ public final class Bank implements BankActions {
             String message = "\t* " + AmountFormatter.format(amount) + " " + key.getCurrencyCode();
             System.out.println(message);
         }
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the summary of liquidity");
     }
 
     @Override
@@ -198,7 +210,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setReferenceExchangeRateOfCurrencyPerRON(currency, exchangeRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set reference exchange rate for " + currency.getCurrencyCode() + " to " + exchangeRate + " RON");
     }
 
     @Override
@@ -210,7 +222,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setAskSpreadPercent(askSpreadPercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set ask spread for exchange rate to " + askSpreadPercent + "%");
     }
 
     @Override
@@ -222,7 +234,7 @@ public final class Bank implements BankActions {
         }
 
         ExchangeRatesConfig.setBidSpreadPercent(bidSpreadPercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set bid spread for exchange rate to " + bidSpreadPercent + "%");
     }
 
     @Override
@@ -233,7 +245,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setLoanInterestRate(currency, interestRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set loan interest rate for " + currency.getCurrencyCode() + " to " + interestRate + "%");
     }
 
     @Override
@@ -242,11 +254,15 @@ public final class Bank implements BankActions {
         System.out.println("\t* internal payment fee: " + FeesConfig.getInternalPaymentFeePercent() + "%");
         System.out.println("\t* external payment fee: " + FeesConfig.getExternalPaymentFeePercent() + "%");
         System.out.println("\t* atm withdrawn fee: " + FeesConfig.getAtmWitdrawFeePercent() + "%");
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed the fees");
     }
 
     @Override
-    public void showExchangeRates(){
+    public void showExchangeRates() {
         ExchangeRateService.showAvailableExchangeRates();
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "viewed exchange rates");
     }
 
     @Override
@@ -264,7 +280,7 @@ public final class Bank implements BankActions {
         }
 
         InterestRateConfig.setDepositInterestRate(currency, maturity, interestRate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set deposit interest rate for " + currency.getCurrencyCode() + " and maturity=" + maturity + " months to " + interestRate + "%");
     }
 
     @Override
@@ -282,7 +298,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setInternalPaymentFeePercent(internalPaymentFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set internal payment fee to " + internalPaymentFeePercent + "%");
     }
 
     @Override
@@ -300,7 +316,7 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setExternalPaymentFeePercent(externalPaymentFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set external payment fee to " + externalPaymentFeePercent + "%");
     }
 
     @Override
@@ -318,21 +334,21 @@ public final class Bank implements BankActions {
         }
 
         FeesConfig.setAtmWitdrawFeePercent(atmWithdrawFeePercent);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set atm withdraw fee to " + atmWithdrawFeePercent + "%");
     }
 
     @Override
     public void setSystemDate(int day, int month, int year) {
         // functia asta o utilizam pentru a verifica daca sunt deposite care au ajuns la scadenta
-        // sau daca banca un client trebuie sa plateasca dobanda + principalul pentru un credit
+        // sau daca un client trebuie sa plateasca dobanda + principalul pentru un credit
         LocalDate newDate = LocalDate.of(year, month, day);
-        if (newDate.compareTo(LocalDate.now()) < 0) {
-            System.out.println("Bank message: operation not completed (the system date cannot be before the real date).");
+        if (newDate.compareTo(SystemDate.getDate()) < 0) {
+            System.out.println("Bank message: operation not completed (the system date cannot be before the current date).");
             return;
         }
 
         SystemDate.setDate(newDate);
-        System.out.println("Bank message: operation completed.");
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "set system date to " + newDate);
 
         this.checkForDepositsThatReachedMaturity();
         this.checkForLoansThatReachedPaymentDay();
@@ -382,14 +398,62 @@ public final class Bank implements BankActions {
     }
 
     private void checkForLoansThatReachedPaymentDay() {
-        // aici este mai greu de implementat logica
-        // mi-am dat seama la sfarsit
-        // si nu prea mai am timp
-        // ar trebui sa iau in calcul si platite de dobanzi si principal (care sunt lunare) intre data acordarii creditului
-        // si data curenta a sistemului
-        // plus situatia in care clientul nu are bani in contul curenta pentru plata
-        // o sa scriu aceasta functie cand o sa ma apuc de a doua parte a proiectului
+        for (Customer customer : this.customers) {
+            ArrayList<Integer> productIndexes = new ArrayList<>();
+            int productIndex = -1;
+            for (Product product : customer.getProducts()) {
+                productIndex += 1;
+                if (product instanceof Loan) {
+                    Loan loan = (Loan) product;
+                    Currency currency = loan.getCurrency();
+                    CurrentAccount currentAccount = loan.getCurrentAccount();
+
+                    // check for each payment date up to the current date (system date)
+                    while (true) {
+                        int indexToNextPaymentDate = loan.getIndexToNextPaymentDate();
+                        LocalDate nextPaymentDate = loan.getPaymentDates().get(indexToNextPaymentDate);
+
+                        if (nextPaymentDate.compareTo(SystemDate.getDate()) > 0)
+                            break;
+
+                        loan.checkForUpdatedInterestRate();
+
+                        double principal = loan.getPrincipalPaymentAmount();
+                        double interest = loan.getInterestPaymentAmount();
+
+                        if (currentAccount.checkAmountForTransaction(principal + interest)) {
+                            this.modifyLiquidity(currency, principal + interest);
+                            currentAccount.makeTransaction(principal, TransactionType.DEBIT, TransactionDetail.PAYMENT_FOR_LOAN, nextPaymentDate);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            loan.decreaseLoanCurrentAmount(principal);
+                            loan.updateIndexToNextPayment();
+                        } else if (currentAccount.checkAmountForTransaction(interest)) {
+                            this.modifyLiquidity(currency, interest);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            // acum modificam scadentarul de plata intrucat clientul nu are suficienti bani pentru plata principalului
+                            loan.updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment();
+                        } else {
+                            // in situatia in care clientul nu are bani in contul curent pentru plata dobanzii
+                            // presupunem ca isi face el un transfer dintr-o sursa externa in contul curent
+                            customer.transferMoneyToCurrentAccount(currentAccount, interest);
+                            this.modifyLiquidity(currency, interest);
+                            currentAccount.makeTransaction(interest, TransactionType.DEBIT, TransactionDetail.INTEREST_FOR_LOAN, nextPaymentDate);
+                            loan.updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment();
+                        }
+
+                        if (indexToNextPaymentDate == (loan.getMaturityInMonths() - 1)) {
+                            productIndexes.add(Integer.valueOf(productIndex));
+                            break;
+                        }
+                    }
+                }
+            }
+            int count = 0;
+            for (Integer indexOfProductToDelete : productIndexes)
+                customer.getProducts().remove(indexOfProductToDelete.intValue() - (count++));
+        }
     }
+
 
     public static Bank getBank(String bankName,
                                String motto,
@@ -556,6 +620,18 @@ public final class Bank implements BankActions {
 
     public List<Customer> getCustomers() {
         return this.customers;
+    }
+
+    public void setCustomers(List<Customer> customers){
+        this.customers=customers;
+    }
+
+    public void saveCustomersAndProductsToCsvFile() {
+        BankCustomersAndProductsCsvWriter.getInstance(this).save();
+    }
+
+    public void readCustomersAndProductsFromCsvFiles(){
+        BankCustomerAndProductsCsvReader.getInstance(this).read();
     }
 }
 

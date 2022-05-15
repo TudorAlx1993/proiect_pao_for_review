@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CurrentAccount extends Product {
     private static int noCurrentAccounts;
@@ -26,8 +28,7 @@ public class CurrentAccount extends Product {
     }
 
     {
-        this.amount = 0;
-        this.iban = this.generateIBAN();
+        this.transactions = new ArrayList<TransactionLogger>();
     }
 
     public CurrentAccount(Currency currency, LocalDate openDate) {
@@ -35,7 +36,17 @@ public class CurrentAccount extends Product {
 
         CurrentAccount.noCurrentAccounts += 1;
 
-        this.transactions = new ArrayList<TransactionLogger>();
+        this.amount = 0;
+        this.iban = this.generateIBAN();
+    }
+
+    public CurrentAccount(String iban,double amount,Currency currency,LocalDate openDate){
+        // this construct will be used only when creating current accounts form csv files
+
+        super(currency,openDate);
+
+        this.iban=iban;
+        this.amount=amount;
     }
 
     public CurrentAccount(Currency currency) {
@@ -121,6 +132,10 @@ public class CurrentAccount extends Product {
                 return "received in exchange rate service";
             case INTEREST_FROM_DEPOSIT:
                 return "interest from deposit";
+            case PAYMENT_FOR_LOAN:
+                return "payment for loan";
+            case INTEREST_FOR_LOAN:
+                return "interest for loan";
             default:
                 return "other transaction";
         }
@@ -141,6 +156,10 @@ public class CurrentAccount extends Product {
 
     public static int getNoCurrentAccounts() {
         return CurrentAccount.noCurrentAccounts;
+    }
+
+    public static void setNoCurrentAccounts(int noCurrentAccounts){
+        CurrentAccount.noCurrentAccounts=noCurrentAccounts;
     }
 
     @Override
@@ -194,5 +213,28 @@ public class CurrentAccount extends Product {
 
     public List<TransactionLogger> getTransactions() {
         return this.transactions;
+    }
+
+
+    @Override
+    public List<String> getHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("iban",
+                        "amount")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.iban);
+        lineContent.add(String.valueOf(this.amount));
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }

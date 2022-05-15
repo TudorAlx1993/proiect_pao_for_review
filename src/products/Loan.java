@@ -12,8 +12,11 @@ import exceptions.NotImplementedCustomerException;
 import utils.AmountFormatter;
 
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Loan extends Product {
     private static int noOfLoans;
@@ -21,7 +24,7 @@ public class Loan extends Product {
     private final String loanId;
     private double interestRate;
     private final int maturityInMonths;
-    private final LocalDate[] paymentDates;
+    private final ArrayList<LocalDate> paymentDates;
     private int indexToNextPaymentDate;
     // payments will come from this account
     private final CurrentAccount currentAccount;
@@ -32,6 +35,27 @@ public class Loan extends Product {
         noOfLoans = 0;
     }
 
+    public Loan(CurrentAccount currentAccount,
+                String loanId,
+                double interestRate,
+                int maturityInMonths,
+                int indexToNextPaymentDate,
+                double loanInitialAmount,
+                double loanCurrentAmount,
+                LocalDate openDate){
+        // this constructor will be used when reading from csv file
+        super(currentAccount.getCurrency(),openDate);
+
+        this.loanId = loanId;
+        this.interestRate = interestRate;
+        this.maturityInMonths = maturityInMonths;
+        this.paymentDates = this.generatePaymentDates();
+        this.indexToNextPaymentDate = indexToNextPaymentDate;
+        this.currentAccount = currentAccount;
+        this.loanInitialAmount = loanInitialAmount;
+        this.loanCurrentAmount = loanCurrentAmount;
+    }
+
     public Loan(CustomerType customerType,
                 CurrentAccount currentAccount,
                 LocalDate openDate,
@@ -39,6 +63,7 @@ public class Loan extends Product {
                 int maturityInMonths) {
 
         super(currentAccount.getCurrency(), openDate);
+
 
         try {
             this.validateInputs(amount, maturityInMonths, currentAccount.getCurrency(), customerType);
@@ -59,7 +84,6 @@ public class Loan extends Product {
         this.currentAccount = currentAccount;
         this.loanInitialAmount = amount;
         this.loanCurrentAmount = amount;
-
     }
 
     public Loan(CustomerType customerType,
@@ -75,25 +99,30 @@ public class Loan extends Product {
             this.interestRate = newInterestRate.doubleValue();
     }
 
-    public double getNextPaymentAmount() {
-        final int monthsInYear = 12;
 
+    public double getInterestPaymentAmount() {
+        final int monthsInYear = 12;
         double interest = this.loanCurrentAmount * (this.interestRate / 100) / monthsInYear;
+
+        return interest;
+    }
+
+    public double getPrincipalPaymentAmount() {
         double principal = this.loanInitialAmount / this.maturityInMonths;
 
-        return (interest + principal);
+        return principal;
     }
 
     public LocalDate getNextPaymentDate() {
-        return this.paymentDates[this.indexToNextPaymentDate];
+        return this.paymentDates.get(this.indexToNextPaymentDate);
     }
 
-    private LocalDate[] generatePaymentDates() {
-        LocalDate[] paymentDates = new LocalDate[this.maturityInMonths];
+    private ArrayList<LocalDate> generatePaymentDates() {
+        ArrayList<LocalDate> paymentDates = new ArrayList<>(this.maturityInMonths);
 
-        paymentDates[0] = this.getOpenDate().plusMonths(1);
-        for (int i = 1; i < paymentDates.length; ++i)
-            paymentDates[i] = paymentDates[i - 1].plusMonths(1);
+        paymentDates.add(this.getOpenDate().plusMonths(1));
+        for (int i = 1; i < this.maturityInMonths; ++i)
+            paymentDates.add(paymentDates.get(i - 1).plusMonths(1));
 
         return paymentDates;
     }
@@ -135,6 +164,10 @@ public class Loan extends Product {
         return Loan.noOfLoans;
     }
 
+    public static void setNoOfLoans(int noOfLoans){
+        Loan.noOfLoans=noOfLoans;
+    }
+
     public String getLoanId() {
         return this.loanId;
     }
@@ -152,12 +185,21 @@ public class Loan extends Product {
         return this.maturityInMonths;
     }
 
-    public LocalDate[] getPaymentDates() {
-        return Arrays.copyOf(this.paymentDates, this.paymentDates.length);
+    public ArrayList<LocalDate> getPaymentDates() {
+        return new ArrayList<>(this.paymentDates);
     }
 
     public int getIndexToNextPaymentDate() {
         return this.indexToNextPaymentDate;
+    }
+
+    public void updateIndexToNextPayment() {
+        this.indexToNextPaymentDate += 1;
+    }
+
+    public void updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment() {
+        for (int i = 0; i < this.paymentDates.size(); ++i)
+            this.paymentDates.set(i, this.paymentDates.get(i).plusMonths(1));
     }
 
     public CurrentAccount getCurrentAccount() {
@@ -170,6 +212,10 @@ public class Loan extends Product {
 
     public double getLoanCurrentAmount() {
         return this.loanCurrentAmount;
+    }
+
+    public void decreaseLoanCurrentAmount(double amount) {
+        this.loanCurrentAmount -= amount;
     }
 
     @Override
@@ -211,8 +257,8 @@ public class Loan extends Product {
                 "\t* current amount: " + AmountFormatter.format(this.loanCurrentAmount) + "\n" +
                 "\t* currency: " + this.getCurrency().toString() + "\n" +
                 "\t* origination date: " + this.getOpenDate().toString() + "\n" +
-                "\t* maturity date: " + this.paymentDates[this.paymentDates.length - 1].toString() + "\n" +
-                "\t* next payment date: " + this.paymentDates[this.indexToNextPaymentDate].toString() + "\n" +
+                "\t* maturity date: " + this.paymentDates.get(this.paymentDates.size() - 1).toString() + "\n" +
+                "\t* next payment date: " + this.paymentDates.get(this.indexToNextPaymentDate).toString() + "\n" +
                 "\t* current interest rate: " + this.interestRate + "%\n";
 
     }
@@ -220,5 +266,37 @@ public class Loan extends Product {
     @Override
     public ProductType getProductType() {
         return ProductType.LOAN;
+    }
+
+    @Override
+    public List<String> getHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("loan_id",
+                        "interest_rate",
+                        "maturity_in_months",
+                        "index_to_next_payment",
+                        "loan_initial_amount",
+                        "loan_current_amount",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.loanId);
+        lineContent.add(String.valueOf(this.interestRate));
+        lineContent.add(String.valueOf(this.maturityInMonths));
+        lineContent.add(String.valueOf(this.indexToNextPaymentDate));
+        lineContent.add(String.valueOf(this.loanInitialAmount));
+        lineContent.add(String.valueOf(this.loanCurrentAmount));
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }

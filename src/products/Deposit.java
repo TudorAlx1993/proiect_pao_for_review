@@ -9,7 +9,11 @@ import utils.AmountFormatter;
 
 import java.security.InvalidParameterException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Deposit extends Product {
     private static int noOfDeposits;
@@ -23,6 +27,25 @@ public class Deposit extends Product {
 
     static {
         noOfDeposits = 0;
+    }
+
+    public Deposit(CurrentAccount currentAccount,
+                   LocalDate openDate,
+                   String depositId,
+                   double depositAmount,
+                   double interestRate,
+                   double interest,
+                   LocalDate depositMaturity) {
+        // this constructor will be used on reading from csv file
+
+        super(currentAccount.getCurrency(), openDate);
+
+        this.currentAccount = currentAccount;
+        this.depositAmount = depositAmount;
+        this.depositId = depositId;
+        this.interest = interest;
+        this.interestRate = interestRate;
+        this.depositMaturity = depositMaturity;
     }
 
     public Deposit(CurrentAccount currentAccount,
@@ -54,7 +77,7 @@ public class Deposit extends Product {
     }
 
     public boolean doesDepositReachedMaturity() {
-        return SystemDate.getDate().compareTo(this.depositMaturity)>=0;
+        return SystemDate.getDate().compareTo(this.depositMaturity) >= 0;
     }
 
     private double calculateDepositInterest(double depositAmount, double interestRate, int maturityInMonths) {
@@ -99,6 +122,10 @@ public class Deposit extends Product {
 
     public static int getNoOfDeposits() {
         return Deposit.noOfDeposits;
+    }
+
+    public static void setNoOfDeposits(int noOfDeposits) {
+        Deposit.noOfDeposits = noOfDeposits;
     }
 
     public double getInterestAtMaturity() {
@@ -150,6 +177,36 @@ public class Deposit extends Product {
     @Override
     public ProductType getProductType() {
         return ProductType.DEPOSIT;
+    }
+
+    @Override
+    public List<String> getHeaderForCsvFile() {
+        List<String> fileHeader = Stream.of("deposit_id",
+                        "deposit_amount",
+                        "interest_rate",
+                        "interest_amount",
+                        "deposit_maturity",
+                        "associated_iban")
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+        fileHeader.addAll(super.getHeaderForCsvFile());
+
+        return fileHeader;
+    }
+
+    @Override
+    public List<String> getDataForCsvWriting(String customerID) {
+        List<String> lineContent = new ArrayList<>();
+
+        lineContent.add(this.depositId);
+        lineContent.add(String.valueOf(this.depositAmount));
+        lineContent.add(String.valueOf(this.interestRate));
+        lineContent.add(String.valueOf(this.interest));
+        lineContent.add(this.depositMaturity.toString());
+        lineContent.add(this.currentAccount.getIBAN());
+        lineContent.addAll(super.getDataForCsvWriting(customerID));
+
+        return lineContent;
     }
 }
 
