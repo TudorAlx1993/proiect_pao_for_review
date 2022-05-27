@@ -71,8 +71,8 @@ public class Main {
         System.out.println("");
         bank.runInConsole();
 
-        // save the bank customers and their products to csv files
-        bank.saveCustomersAndProductsToCsvFile();
+        // save the system date and static variables to csv files
+        bank.saveSystemDateAndStaticVariablesToCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();

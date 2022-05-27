@@ -630,8 +630,16 @@ public final class Bank implements BankActions {
         BankCustomersAndProductsCsvWriter.getInstance(this).save();
     }
 
+    public void saveSystemDateAndStaticVariablesToCsvFiles(){
+        BankCustomersAndProductsCsvWriter.getInstance(this).saveSystemDateAndStaticVariables();
+    }
+
     public void readCustomersAndProductsFromCsvFiles(){
         BankCustomerAndProductsCsvReader.getInstance(this).read();
+    }
+
+    public void readSystemDateAndStaticVariablesFromCsvFiles(){
+        BankCustomerAndProductsCsvReader.getInstance(this).readSystemDateAndStaticVariables();
     }
 }
 
