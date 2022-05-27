@@ -4,6 +4,7 @@ import currency.Currency;
 import customers.Company;
 import customers.Customer;
 import customers.Individual;
+import io.Database;
 import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;
@@ -69,12 +70,15 @@ public class Main {
         // example credentials: 1930729000000 and parola1
         // for more credentials please see the Main.java file from main branch on git
         System.out.println("");
-        bank.runInConsole();
+        //bank.runInConsole();
 
         // save the system date and static variables to csv files
         bank.saveSystemDateAndStaticVariablesToCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();
+
+        // close the database connection
+        Database.closeDatabaseConnection();
     }
 }
