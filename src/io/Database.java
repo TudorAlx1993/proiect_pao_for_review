@@ -1,10 +1,18 @@
 package io;
 
+import bank.Bank;
 import configs.Codes;
+import customers.Customer;
+import customers.CustomerType;
+import products.*;
+import transaction.TransactionLogger;
+import utils.EncloseStringBetweenQuotes;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,7 +66,7 @@ public final class Database {
                 "birth_date date not null, " +
                 "hash_of_password varchar(64) not null," +
                 "phone_number varchar(10) not null, " +
-                "email_address varchar(30) not null, " +
+                "email_address varchar(50) not null, " +
                 "address_country varchar(20) not null," +
                 "address_city varchar(15) not null, " +
                 "address_zip_code varchar(6) not null, " +
@@ -89,26 +97,26 @@ public final class Database {
                 "deposit_amount double not null, " +
                 "interest_rate double not null, " +
                 "opening_date date not null, " +
-                "maturity_in_months int not null, " +
+                "maturity_date date not null, " +
                 "associated_iban varchar(34) not null, " +
                 "constraint deposit_id_constraint check (char_length(deposit_id)=20), " +
                 "constraint deposit_amount_constraint check (deposit_amount>0), " +
                 "constraint deposit_interest_rate_constraint check (interest_rate>0), " +
-                "constraint deposit_maturity_in_months_constraint check (maturity_in_months>0), " +
+                "constraint deposit_maturity_date_constraint check (maturity_date>opening_date), " +
                 "constraint deposit_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists debit_cards" +
                 "(" +
                 "card_id varchar(16) primary key, " +
                 "opening_date date not null, " +
-                "years_to_expiration_date int not null, " +
+                "expiration_date date not null, " +
                 "hash_of_pin varchar(64) not null, " +
                 "name_on_card varchar(30) not null, " +
                 "network_processor_name varchar(15) not null, " +
                 "associated_iban varchar(34) not null, " +
-                "constraint card_id_constraint check (char_length(card_id)=16), " +
-                "constraint years_to_expiration_date_constraint check (years_to_expiration_date>0), " +
-                "constraint hash_of_pin_constraint check (char_length(hash_of_pin)=64), " +
+                "constraint debit_card_card_id_constraint check (char_length(card_id)=16), " +
+                "constraint debit_card_expiration_date_constraint check (expiration_date>opening_date), " +
+                "constraint debit_card_hash_of_pin_constraint check (char_length(hash_of_pin)=64), " +
                 "constraint debit_card_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists current_account_transactions" +
@@ -121,8 +129,8 @@ public final class Database {
                 "associated_iban varchar(34) not null, " +
                 "constraint transaction_id_constraint check (char_length(transaction_id)=36), " +
                 "constraint transaction_type_constraint check (transaction_type='credit' or transaction_type='debit'), " +
-                "constraint amount_constraint check (amount>0), " +
-                "constraint current_account_transactions_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
+                "constraint transaction_amount_constraint check (amount>=0), " +
+                "constraint transaction_current_account_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists loans" +
                 "(" +
@@ -158,3 +166,4 @@ public final class Database {
                 });
     }
 }
+

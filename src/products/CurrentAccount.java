@@ -117,7 +117,7 @@ public class CurrentAccount extends Product {
             case WITHDRAW_MONEY_FROM_ATM:
                 return "money withdraw from ATM";
             case WITHDRAW_FEE_FROM_ATM:
-                return "ATM's withdraw fee";
+                return "ATM withdraw fee";
             case INTERNAL_PAYMENT_FEE:
                 return "internal payment fee";
             case EXTERNAL_PAYMENT_FEE:
