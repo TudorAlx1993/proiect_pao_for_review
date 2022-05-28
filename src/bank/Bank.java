@@ -10,6 +10,7 @@ import customers.Customer;
 import customers.Individual;
 import io.BankCustomerAndProductsCsvReader;
 import io.BankCustomersAndProductsCsvWriter;
+import io.Database;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
@@ -622,24 +623,28 @@ public final class Bank implements BankActions {
         return this.customers;
     }
 
-    public void setCustomers(List<Customer> customers){
-        this.customers=customers;
+    public void setCustomers(List<Customer> customers) {
+        this.customers = customers;
     }
 
     public void saveCustomersAndProductsToCsvFile() {
         BankCustomersAndProductsCsvWriter.getInstance(this).save();
     }
 
-    public void saveSystemDateAndStaticVariablesToCsvFiles(){
+    public void saveSystemDateAndStaticVariablesToCsvFiles() {
         BankCustomersAndProductsCsvWriter.getInstance(this).saveSystemDateAndStaticVariables();
     }
 
-    public void readCustomersAndProductsFromCsvFiles(){
+    public void readCustomersAndProductsFromCsvFiles() {
         BankCustomerAndProductsCsvReader.getInstance(this).read();
     }
 
-    public void readSystemDateAndStaticVariablesFromCsvFiles(){
+    public void readSystemDateAndStaticVariablesFromCsvFiles() {
         BankCustomerAndProductsCsvReader.getInstance(this).readSystemDateAndStaticVariables();
+    }
+
+    public void readCustomersAndProductsFromDatabase() {
+        Database.readCustomersAndProducts(this);
     }
 }
 

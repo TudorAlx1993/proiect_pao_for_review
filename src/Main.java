@@ -9,6 +9,7 @@ import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;
 
+import javax.xml.crypto.Data;
 import java.lang.Math;
 import java.time.LocalDate;
 
@@ -65,6 +66,9 @@ public class Main {
 
         // read the bank customers and their products from csv files
         bank.readCustomersAndProductsFromCsvFiles();
+
+        // read the bank customers and their products from mysql database
+        bank.readCustomersAndProductsFromDatabase();
 
         // run program in console interface
         // example credentials: 1930729000000 and parola1

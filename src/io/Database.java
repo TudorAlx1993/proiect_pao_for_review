@@ -1,19 +1,20 @@
 package io;
 
+import address.Address;
 import bank.Bank;
 import configs.Codes;
+import customers.Company;
 import customers.Customer;
 import customers.CustomerType;
-import products.*;
-import transaction.TransactionLogger;
-import utils.EncloseStringBetweenQuotes;
+import customers.Individual;
+import utils.DateFromString;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public final class Database {
@@ -164,6 +165,66 @@ public final class Database {
                         System.exit(Codes.EXIT_ON_ERROR);
                     }
                 });
+    }
+
+    private static List<Customer> readCustomers() {
+        final List<Customer> customers = new ArrayList<>();
+        final String sqlScript = "select * from customers";
+        try {
+            ResultSet databaseCustomers = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+            while (databaseCustomers.next()) {
+                final String customerId = databaseCustomers.getString(1);
+                final CustomerType customerType = databaseCustomers.getString(2).equals("individual") ? CustomerType.INDIVIDUAL : CustomerType.COMPANY;
+                final String customerName = databaseCustomers.getString(3);
+                final String birthDate = databaseCustomers.getString(4);
+                final String hashOfPassword = databaseCustomers.getString(5);
+                final String phoneNumber = databaseCustomers.getString(6);
+                final String emailAddress = databaseCustomers.getString(7);
+                final String addressCountry = databaseCustomers.getString(8);
+                final String addressCity = databaseCustomers.getString(9);
+                final String addressZipCode = databaseCustomers.getString(10);
+                final String addressStreetName = databaseCustomers.getString(11);
+                int addressStreetNumber = databaseCustomers.getInt(12);
+                final String addressAdditionalInfo = databaseCustomers.getString(13);
+
+                Address address = null;
+                if (addressAdditionalInfo == null)
+                    address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber);
+                else
+                    address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber, addressAdditionalInfo);
+
+                Customer customer = null;
+                switch (customerType) {
+                    case INDIVIDUAL -> {
+                        String[] lastAndFirstName = customerName.split(" ");
+                        String lastName = lastAndFirstName[0];
+                        String firstNames = String.join(" ", Arrays.copyOfRange(lastAndFirstName, 1, lastAndFirstName.length));
+                        customer = new Individual(firstNames, lastName, customerId, hashOfPassword, phoneNumber, emailAddress, address, true);
+                    }
+                    case COMPANY -> customer = new Company(customerName, customerId, DateFromString.get(birthDate), hashOfPassword, phoneNumber, emailAddress, address, true);
+                }
+
+                customers.add(customer);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return customers;
+    }
+
+    
+
+    public static void readCustomersAndProducts(Bank bank) {
+        // section 1: read from database the bank's customers
+        List<Customer> databaseCustomers=Database.readCustomers();
+
+        // section 2: read from database the customers current accounts and link each one of them to the right customer
+
+
     }
 }
 
