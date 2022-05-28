@@ -9,6 +9,8 @@ import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
 import products.*;
+import transaction.TransactionLogger;
+import transaction.TransactionType;
 import utils.DateFromString;
 
 import java.sql.Connection;
@@ -383,6 +385,34 @@ public final class Database {
         return customerIdsAndLoans;
     }
 
+    private static Map<String, List<TransactionLogger>> readCurrentAccountTransactions() {
+        final Map<String, List<TransactionLogger>> currentAccountsAndTransactions = new HashMap<>();
+        final String sqlScript = "select * from current_account_transactions;";
+        try {
+            ResultSet databaseTransactions = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+            while (databaseTransactions.next()) {
+                final String transactionID = databaseTransactions.getString(1);
+                final LocalDate transactionDate = DateFromString.get(databaseTransactions.getString(2));
+                final TransactionType transactionType = databaseTransactions.getString(3).equals(TransactionType.CREDIT.toString().toLowerCase()) ? TransactionType.CREDIT : TransactionType.DEBIT;
+                final double amount = databaseTransactions.getDouble(4);
+                final String transactionDetail = databaseTransactions.getString(5);
+                final String associatedIban = databaseTransactions.getString(6);
+
+                final TransactionLogger transaction = new TransactionLogger(transactionID, transactionType, amount, transactionDetail, transactionDate);
+
+                if (!currentAccountsAndTransactions.containsKey(associatedIban))
+                    currentAccountsAndTransactions.put(associatedIban, new ArrayList<>());
+                currentAccountsAndTransactions.get(associatedIban).add(transaction);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return currentAccountsAndTransactions;
+    }
+
     public static void readCustomersAndProducts(Bank bank) {
         // section 1: read from database the bank's customers
         List<Customer> databaseCustomers = Database.readCustomers();
@@ -394,12 +424,8 @@ public final class Database {
         Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = Database.readCurrentAccounts();
         Database.addProductsToCustomers(customerIdsAndCurrentAccounts, databaseCustomers);
 
-        // get a list with all current accounts
-        List<CurrentAccount> currentAccounts = customerIdsAndCurrentAccounts
-                .values()
-                .stream()
-                .flatMap(Collection::stream)
-                .toList();
+        // get a list with all current accounts read from database
+        List<CurrentAccount> currentAccounts = Database.getAllDatabaseCurrentAccounts(customerIdsAndCurrentAccounts);
 
         // read the deposits
         Map<String, List<Deposit>> customerIdsAndDeposits = Database.readDeposits(currentAccounts);
@@ -413,8 +439,13 @@ public final class Database {
         Map<String, List<Loan>> customerIdsAndLoans = Database.readLoans(currentAccounts);
         Database.addProductsToCustomers(customerIdsAndLoans, databaseCustomers);
 
-        
+        // read the transactions related to the current accounts
+        // link each transaction to the right current account
+        Map<String, List<TransactionLogger>> ibansAndTransactions = Database.readCurrentAccountTransactions();
+        Database.addTransactionsToCurrentAccounts(currentAccounts, ibansAndTransactions);
 
+        // section 3: link the customers read from mysql database to the bank's customers data structure
+        bank.setCustomers(databaseCustomers);
     }
 
     private static <T1 extends Product, T2 extends Customer>
@@ -443,5 +474,28 @@ public final class Database {
                 .orElse(null);
     }
 
+    private static List<CurrentAccount> getAllDatabaseCurrentAccounts(Map<String, List<CurrentAccount>> customersIdAndCurrentAccounts) {
+        return customersIdAndCurrentAccounts
+                .values()
+                .stream()
+                .flatMap(Collection::stream)
+                .toList();
+    }
+
+    private static void addTransactionsToCurrentAccounts(List<CurrentAccount> currentAccounts,
+                                                         Map<String, List<TransactionLogger>> ibansAndTransactions) {
+        currentAccounts
+                .forEach(currentAccount ->
+                        currentAccount.getTransactions().addAll(
+                                ibansAndTransactions
+                                        .entrySet()
+                                        .stream()
+                                        .filter(entry -> entry.getKey().equals(currentAccount.getIBAN()))
+                                        .filter(entry -> entry.getValue().size() > 0)
+                                        .map(Map.Entry::getValue)
+                                        .flatMap(Collection::stream)
+                                        .toList()
+                        ));
+    }
 }
 

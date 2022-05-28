@@ -64,8 +64,8 @@ public class Main {
         // show the offered interest rates by bank
         InterestRateConfig.showInterestRates();
 
-        // read the bank customers and their products from csv files
-        bank.readCustomersAndProductsFromCsvFiles();
+        // read the system date and static variables from csv files
+        bank.readSystemDateAndStaticVariablesFromCsvFiles();
 
         // read the bank customers and their products from mysql database
         bank.readCustomersAndProductsFromDatabase();
@@ -74,7 +74,7 @@ public class Main {
         // example credentials: 1930729000000 and parola1
         // for more credentials please see the Main.java file from main branch on git
         System.out.println("");
-        //bank.runInConsole();
+        bank.runInConsole();
 
         // save the system date and static variables to csv files
         bank.saveSystemDateAndStaticVariablesToCsvFiles();
