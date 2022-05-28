@@ -9,6 +9,7 @@ import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
 import products.CurrentAccount;
+import products.DebitCard;
 import products.Deposit;
 import products.Product;
 import utils.DateFromString;
@@ -301,6 +302,47 @@ public final class Database {
         return customerIdsAndDeposits;
     }
 
+    private static Map<String, List<DebitCard>> readDebitCards(List<CurrentAccount> currentAccounts) {
+        final Map<String, List<DebitCard>> customerIdsAndDebitCards = new HashMap<>();
+        final String sqlScript = "select a.*, c.customer_id " +
+                "from debit_cards a " +
+                "inner join current_accounts b on a.associated_iban=b.iban " +
+                "inner join customers c on b.customer_id=c.customer_id;";
+        try {
+            ResultSet databaseDebitCards = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+            while (databaseDebitCards.next()) {
+                final String cardID = databaseDebitCards.getString(1);
+                final LocalDate openingDate = DateFromString.get(databaseDebitCards.getString(2));
+                final LocalDate expirationDate = DateFromString.get(databaseDebitCards.getString(3));
+                final String hashOfPin = databaseDebitCards.getString(4);
+                final String nameOnCard = databaseDebitCards.getString(5);
+                final String networkProcessorName = databaseDebitCards.getString(6);
+                final String associatedIban = databaseDebitCards.getString(7);
+                final String customerID = databaseDebitCards.getString(8);
+
+                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                final DebitCard debitCard = new DebitCard(currentAccount,
+                        cardID,
+                        openingDate,
+                        expirationDate,
+                        hashOfPin,
+                        nameOnCard,
+                        networkProcessorName);
+
+                if (!customerIdsAndDebitCards.containsKey(customerID))
+                    customerIdsAndDebitCards.put(customerID, new ArrayList<>());
+                customerIdsAndDebitCards.get(customerID).add(debitCard);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return customerIdsAndDebitCards;
+    }
+
     public static void readCustomersAndProducts(Bank bank) {
         // section 1: read from database the bank's customers
         List<Customer> databaseCustomers = Database.readCustomers();
@@ -323,7 +365,10 @@ public final class Database {
         Map<String, List<Deposit>> customerIdsAndDeposits = Database.readDeposits(currentAccounts);
         Database.addProductsToCustomers(customerIdsAndDeposits, databaseCustomers);
 
-        
+        // read the debit cards
+        Map<String, List<DebitCard>> customersIdsAndDebitCards = Database.readDebitCards(currentAccounts);
+        Database.addProductsToCustomers(customersIdsAndDebitCards, databaseCustomers);
+
     }
 
     private static <T1 extends Product, T2 extends Customer>
