@@ -9,12 +9,16 @@ import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
 import products.CurrentAccount;
+import products.Deposit;
+import products.Product;
 import utils.DateFromString;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -251,24 +255,102 @@ public final class Database {
         return customerIdsAndCurrentAccounts;
     }
 
+    private static Map<String, List<Deposit>> readDeposits(List<CurrentAccount> currentAccounts) {
+        final Map<String, List<Deposit>> customerIdsAndDeposits = new HashMap<>();
+        final String sqlScript = "select a.*, c.customer_id " +
+                "from deposits a " +
+                "inner join current_accounts b on a.associated_iban=b.iban " +
+                "inner join customers c on b.customer_id=c.customer_id;";
+        try {
+            ResultSet databaseDeposits = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+            while (databaseDeposits.next()) {
+                final String depositID = databaseDeposits.getString(1);
+                final double depositAmount = databaseDeposits.getDouble(2);
+                final double interestRate = databaseDeposits.getDouble(3);
+                final LocalDate openingDate = DateFromString.get(databaseDeposits.getString(4));
+                final LocalDate maturityDate = DateFromString.get(databaseDeposits.getString(5));
+                final String associatedIban = databaseDeposits.getString(6);
+                final String customerID = databaseDeposits.getString(7);
+
+                final int monthsInYear = 12;
+                final Period period = Period.between(openingDate, maturityDate);
+                final int maturityInMonths = period.getYears() * monthsInYear + period.getMonths();
+                final double interestAmount = depositAmount * interestRate / 100 * maturityInMonths / monthsInYear;
+
+                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                Deposit deposit = new Deposit(currentAccount,
+                        openingDate,
+                        depositID,
+                        depositAmount,
+                        interestRate,
+                        interestAmount,
+                        maturityDate);
+
+
+                if (!customerIdsAndDeposits.containsKey(customerID))
+                    customerIdsAndDeposits.put(customerID, new ArrayList<>());
+                customerIdsAndDeposits.get(customerID).add(deposit);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return customerIdsAndDeposits;
+    }
+
     public static void readCustomersAndProducts(Bank bank) {
         // section 1: read from database the bank's customers
         List<Customer> databaseCustomers = Database.readCustomers();
 
-        // section 2: read from database the customer products
+        // section 2: read the products from the database
         // link each product to the right customer
 
         // start with the current accounts because any other product requires the information related to a given current account
         Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = Database.readCurrentAccounts();
-        customerIdsAndCurrentAccounts
-                .forEach((customerId, currentAccounts) ->
-                        databaseCustomers
-                        .stream().
-                        filter(customer -> customer.getUniqueID().equals(customerId))
-                        .findFirst()
-                        .ifPresent(customer -> customer.getProducts().addAll(currentAccounts)));
+        Database.addProductsToCustomers(customerIdsAndCurrentAccounts, databaseCustomers);
+
+        // get a list with all current accounts
+        List<CurrentAccount> currentAccounts = customerIdsAndCurrentAccounts
+                .values()
+                .stream()
+                .flatMap(Collection::stream)
+                .toList();
+
+        // read the deposits
+        Map<String, List<Deposit>> customerIdsAndDeposits = Database.readDeposits(currentAccounts);
+        Database.addProductsToCustomers(customerIdsAndDeposits, databaseCustomers);
 
         
     }
+
+    private static <T1 extends Product, T2 extends Customer>
+    void addProductsToCustomers(Map<String, List<T1>> customersIdsAndProducts, List<T2> customers) {
+        customersIdsAndProducts
+                .forEach((customerID, products) ->
+                        customers
+                                .stream()
+                                .filter(customer -> customer.getUniqueID().equals(customerID))
+                                .findFirst()
+                                .ifPresent(customer -> customer.getProducts().addAll(products))
+                );
+    }
+
+    private static CurrentAccount getCurrentAccount(List<CurrentAccount> currentAccounts, String iban) {
+        // iban is unique
+        // we always get a list with only one element
+        // parameter currentAccounts already contains all banks's current accounts from mysql database
+        // thus this function will never return null
+        return currentAccounts
+                .stream()
+                .filter(account -> account.getIBAN().equals(iban))
+                .toList()
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
 }
 
