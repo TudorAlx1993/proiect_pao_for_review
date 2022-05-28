@@ -8,10 +8,7 @@ import customers.Company;
 import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
-import products.CurrentAccount;
-import products.DebitCard;
-import products.Deposit;
-import products.Product;
+import products.*;
 import utils.DateFromString;
 
 import java.sql.Connection;
@@ -343,6 +340,49 @@ public final class Database {
         return customerIdsAndDebitCards;
     }
 
+    private static Map<String, List<Loan>> readLoans(List<CurrentAccount> currentAccounts) {
+        final Map<String, List<Loan>> customerIdsAndLoans = new HashMap<>();
+        final String sqlScript = "select a.*, c.customer_id " +
+                "from loans a " +
+                "inner join current_accounts b on a.associated_iban=b.iban " +
+                "inner join customers c on b.customer_id=c.customer_id;";
+        try {
+            ResultSet databaseLoans = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+            while (databaseLoans.next()) {
+                final String loanID = databaseLoans.getString(1);
+                final LocalDate openDate = DateFromString.get(databaseLoans.getString(2));
+                final int maturityInMonths = databaseLoans.getInt(3);
+                final double loanInitialAmount = databaseLoans.getDouble(4);
+                final double loanCurrentAmount = databaseLoans.getDouble(5);
+                final double loanInterestRate = databaseLoans.getDouble(6);
+                final int indexToNextPayment = databaseLoans.getInt(7);
+                final String associatedIban = databaseLoans.getString(8);
+                final String customerID = databaseLoans.getString(9);
+
+                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                Loan loan = new Loan(currentAccount,
+                        loanID,
+                        loanInterestRate,
+                        maturityInMonths,
+                        indexToNextPayment,
+                        loanInitialAmount,
+                        loanCurrentAmount,
+                        openDate);
+
+                if (!customerIdsAndLoans.containsKey(customerID))
+                    customerIdsAndLoans.put(customerID, new ArrayList<>());
+                customerIdsAndLoans.get(customerID).add(loan);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return customerIdsAndLoans;
+    }
+
     public static void readCustomersAndProducts(Bank bank) {
         // section 1: read from database the bank's customers
         List<Customer> databaseCustomers = Database.readCustomers();
@@ -368,6 +408,12 @@ public final class Database {
         // read the debit cards
         Map<String, List<DebitCard>> customersIdsAndDebitCards = Database.readDebitCards(currentAccounts);
         Database.addProductsToCustomers(customersIdsAndDebitCards, databaseCustomers);
+
+        // read the loans
+        Map<String, List<Loan>> customerIdsAndLoans = Database.readLoans(currentAccounts);
+        Database.addProductsToCustomers(customerIdsAndLoans, databaseCustomers);
+
+        
 
     }
 

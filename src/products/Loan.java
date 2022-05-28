@@ -43,7 +43,7 @@ public class Loan extends Product {
                 double loanInitialAmount,
                 double loanCurrentAmount,
                 LocalDate openDate){
-        // this constructor will be used when reading from csv file
+        // this constructor will be used when reading from csv file and mysql database
         super(currentAccount.getCurrency(),openDate);
 
         this.loanId = loanId;

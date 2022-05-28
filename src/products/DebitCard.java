@@ -37,7 +37,7 @@ public class DebitCard extends Product {
                      String hashOfPin,
                      String nameOnCard,
                      String networkProcessorName) {
-        // this constructor will be used when creating debit cards from csv files
+        // this constructor will be used when creating debit cards from csv files and mysql database
 
         super(currentAccount.getCurrency(), openDate);
 
