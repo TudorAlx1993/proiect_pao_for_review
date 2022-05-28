@@ -41,7 +41,7 @@ public class CurrentAccount extends Product {
     }
 
     public CurrentAccount(String iban,double amount,Currency currency,LocalDate openDate){
-        // this construct will be used only when creating current accounts form csv files
+        // this construct will be used only when creating current accounts form csv files or database
 
         super(currency,openDate);
 

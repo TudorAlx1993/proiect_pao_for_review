@@ -3,19 +3,20 @@ package io;
 import address.Address;
 import bank.Bank;
 import configs.Codes;
+import currency.Currency;
 import customers.Company;
 import customers.Customer;
 import customers.CustomerType;
 import customers.Individual;
+import products.CurrentAccount;
 import utils.DateFromString;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public final class Database {
     private static final String databaseUrl;
@@ -216,15 +217,58 @@ public final class Database {
         return customers;
     }
 
-    
+    private static Map<String, List<CurrentAccount>> readCurrentAccounts() {
+        final Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = new HashMap<>();
+        final String sqlScript = "select * from current_accounts";
+        try {
+            ResultSet databaseCurrentAccounts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+            while (databaseCurrentAccounts.next()) {
+                final String iban = databaseCurrentAccounts.getString(1);
+                double amount = databaseCurrentAccounts.getDouble(2);
+                final String currencyCode = databaseCurrentAccounts.getString(3);
+                final String openingDate = databaseCurrentAccounts.getString(4);
+                boolean primaryAccount = databaseCurrentAccounts.getBoolean(5);
+                final String customerID = databaseCurrentAccounts.getString(6);
+
+                CurrentAccount currentAccount = new CurrentAccount(iban, amount, new Currency(currencyCode), DateFromString.get(openingDate));
+
+                if (!customerIdsAndCurrentAccounts.containsKey(customerID))
+                    customerIdsAndCurrentAccounts.put(customerID, new ArrayList<>());
+
+                // the primary account should always be the first product of a customer
+                if (primaryAccount)
+                    customerIdsAndCurrentAccounts.get(customerID).add(0, currentAccount);
+                else
+                    customerIdsAndCurrentAccounts.get(customerID).add(currentAccount);
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        return customerIdsAndCurrentAccounts;
+    }
 
     public static void readCustomersAndProducts(Bank bank) {
         // section 1: read from database the bank's customers
-        List<Customer> databaseCustomers=Database.readCustomers();
+        List<Customer> databaseCustomers = Database.readCustomers();
 
-        // section 2: read from database the customers current accounts and link each one of them to the right customer
+        // section 2: read from database the customer products
+        // link each product to the right customer
 
+        // start with the current accounts because any other product requires the information related to a given current account
+        Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = Database.readCurrentAccounts();
+        customerIdsAndCurrentAccounts
+                .forEach((customerId, currentAccounts) ->
+                        databaseCustomers
+                        .stream().
+                        filter(customer -> customer.getUniqueID().equals(customerId))
+                        .findFirst()
+                        .ifPresent(customer -> customer.getProducts().addAll(currentAccounts)));
 
+        
     }
 }
 
