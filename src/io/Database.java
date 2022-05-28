@@ -20,7 +20,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class Database {
     private static final String databaseUrl;
@@ -172,280 +171,258 @@ public final class Database {
                 });
     }
 
-    private static List<Customer> readCustomers() {
+    private static List<Customer> readCustomers() throws SQLException {
         final List<Customer> customers = new ArrayList<>();
+
         final String sqlScript = "select * from customers";
-        try {
-            ResultSet databaseCustomers = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+        final ResultSet databaseCustomers = Database.databaseConnection.createStatement().executeQuery(sqlScript);
 
-            while (databaseCustomers.next()) {
-                final String customerId = databaseCustomers.getString(1);
-                final CustomerType customerType = databaseCustomers.getString(2).equals("individual") ? CustomerType.INDIVIDUAL : CustomerType.COMPANY;
-                final String customerName = databaseCustomers.getString(3);
-                final String birthDate = databaseCustomers.getString(4);
-                final String hashOfPassword = databaseCustomers.getString(5);
-                final String phoneNumber = databaseCustomers.getString(6);
-                final String emailAddress = databaseCustomers.getString(7);
-                final String addressCountry = databaseCustomers.getString(8);
-                final String addressCity = databaseCustomers.getString(9);
-                final String addressZipCode = databaseCustomers.getString(10);
-                final String addressStreetName = databaseCustomers.getString(11);
-                int addressStreetNumber = databaseCustomers.getInt(12);
-                final String addressAdditionalInfo = databaseCustomers.getString(13);
+        while (databaseCustomers.next()) {
+            final String customerId = databaseCustomers.getString(1);
+            final CustomerType customerType = databaseCustomers.getString(2).equals("individual") ? CustomerType.INDIVIDUAL : CustomerType.COMPANY;
+            final String customerName = databaseCustomers.getString(3);
+            final String birthDate = databaseCustomers.getString(4);
+            final String hashOfPassword = databaseCustomers.getString(5);
+            final String phoneNumber = databaseCustomers.getString(6);
+            final String emailAddress = databaseCustomers.getString(7);
+            final String addressCountry = databaseCustomers.getString(8);
+            final String addressCity = databaseCustomers.getString(9);
+            final String addressZipCode = databaseCustomers.getString(10);
+            final String addressStreetName = databaseCustomers.getString(11);
+            final int addressStreetNumber = databaseCustomers.getInt(12);
+            final String addressAdditionalInfo = databaseCustomers.getString(13);
 
-                Address address = null;
-                if (addressAdditionalInfo == null)
-                    address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber);
-                else
-                    address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber, addressAdditionalInfo);
+            Address address = null;
+            if (addressAdditionalInfo == null)
+                address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber);
+            else
+                address = new Address(addressCountry, addressCity, addressZipCode, addressStreetName, addressStreetNumber, addressAdditionalInfo);
 
-                Customer customer = null;
-                switch (customerType) {
-                    case INDIVIDUAL -> {
-                        String[] lastAndFirstName = customerName.split(" ");
-                        String lastName = lastAndFirstName[0];
-                        String firstNames = String.join(" ", Arrays.copyOfRange(lastAndFirstName, 1, lastAndFirstName.length));
-                        customer = new Individual(firstNames, lastName, customerId, hashOfPassword, phoneNumber, emailAddress, address, true);
-                    }
-                    case COMPANY -> customer = new Company(customerName, customerId, DateFromString.get(birthDate), hashOfPassword, phoneNumber, emailAddress, address, true);
+            Customer customer = null;
+            switch (customerType) {
+                case INDIVIDUAL -> {
+                    String[] lastAndFirstName = customerName.split(" ");
+                    String lastName = lastAndFirstName[0];
+                    String firstNames = String.join(" ", Arrays.copyOfRange(lastAndFirstName, 1, lastAndFirstName.length));
+                    customer = new Individual(firstNames, lastName, customerId, hashOfPassword, phoneNumber, emailAddress, address, true);
                 }
-
-                customers.add(customer);
+                case COMPANY -> customer = new Company(customerName, customerId, DateFromString.get(birthDate), hashOfPassword, phoneNumber, emailAddress, address, true);
             }
 
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
+            customers.add(customer);
         }
-
         return customers;
     }
 
-    private static Map<String, List<CurrentAccount>> readCurrentAccounts() {
-        final Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = new HashMap<>();
-        final String sqlScript = "select * from current_accounts";
-        try {
-            ResultSet databaseCurrentAccounts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
-
-            while (databaseCurrentAccounts.next()) {
-                final String iban = databaseCurrentAccounts.getString(1);
-                double amount = databaseCurrentAccounts.getDouble(2);
-                final String currencyCode = databaseCurrentAccounts.getString(3);
-                final String openingDate = databaseCurrentAccounts.getString(4);
-                boolean primaryAccount = databaseCurrentAccounts.getBoolean(5);
-                final String customerID = databaseCurrentAccounts.getString(6);
-
-                CurrentAccount currentAccount = new CurrentAccount(iban, amount, new Currency(currencyCode), DateFromString.get(openingDate));
-
-                if (!customerIdsAndCurrentAccounts.containsKey(customerID))
-                    customerIdsAndCurrentAccounts.put(customerID, new ArrayList<>());
-
-                // the primary account should always be the first product of a customer
-                if (primaryAccount)
-                    customerIdsAndCurrentAccounts.get(customerID).add(0, currentAccount);
-                else
-                    customerIdsAndCurrentAccounts.get(customerID).add(currentAccount);
-            }
-
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
-        }
-
-        return customerIdsAndCurrentAccounts;
-    }
-
-    private static Map<String, List<Deposit>> readDeposits(List<CurrentAccount> currentAccounts) {
-        final Map<String, List<Deposit>> customerIdsAndDeposits = new HashMap<>();
-        final String sqlScript = "select a.*, c.customer_id " +
-                "from deposits a " +
-                "inner join current_accounts b on a.associated_iban=b.iban " +
-                "inner join customers c on b.customer_id=c.customer_id;";
-        try {
-            ResultSet databaseDeposits = Database.databaseConnection.createStatement().executeQuery(sqlScript);
-            while (databaseDeposits.next()) {
-                final String depositID = databaseDeposits.getString(1);
-                final double depositAmount = databaseDeposits.getDouble(2);
-                final double interestRate = databaseDeposits.getDouble(3);
-                final LocalDate openingDate = DateFromString.get(databaseDeposits.getString(4));
-                final LocalDate maturityDate = DateFromString.get(databaseDeposits.getString(5));
-                final String associatedIban = databaseDeposits.getString(6);
-                final String customerID = databaseDeposits.getString(7);
-
-                final int monthsInYear = 12;
-                final Period period = Period.between(openingDate, maturityDate);
-                final int maturityInMonths = period.getYears() * monthsInYear + period.getMonths();
-                final double interestAmount = depositAmount * interestRate / 100 * maturityInMonths / monthsInYear;
-
-                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
-
-                Deposit deposit = new Deposit(currentAccount,
-                        openingDate,
-                        depositID,
-                        depositAmount,
-                        interestRate,
-                        interestAmount,
-                        maturityDate);
-
-
-                if (!customerIdsAndDeposits.containsKey(customerID))
-                    customerIdsAndDeposits.put(customerID, new ArrayList<>());
-                customerIdsAndDeposits.get(customerID).add(deposit);
-            }
-
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
-        }
-
-        return customerIdsAndDeposits;
-    }
-
-    private static Map<String, List<DebitCard>> readDebitCards(List<CurrentAccount> currentAccounts) {
-        final Map<String, List<DebitCard>> customerIdsAndDebitCards = new HashMap<>();
-        final String sqlScript = "select a.*, c.customer_id " +
-                "from debit_cards a " +
-                "inner join current_accounts b on a.associated_iban=b.iban " +
-                "inner join customers c on b.customer_id=c.customer_id;";
-        try {
-            ResultSet databaseDebitCards = Database.databaseConnection.createStatement().executeQuery(sqlScript);
-            while (databaseDebitCards.next()) {
-                final String cardID = databaseDebitCards.getString(1);
-                final LocalDate openingDate = DateFromString.get(databaseDebitCards.getString(2));
-                final LocalDate expirationDate = DateFromString.get(databaseDebitCards.getString(3));
-                final String hashOfPin = databaseDebitCards.getString(4);
-                final String nameOnCard = databaseDebitCards.getString(5);
-                final String networkProcessorName = databaseDebitCards.getString(6);
-                final String associatedIban = databaseDebitCards.getString(7);
-                final String customerID = databaseDebitCards.getString(8);
-
-                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
-
-                final DebitCard debitCard = new DebitCard(currentAccount,
-                        cardID,
-                        openingDate,
-                        expirationDate,
-                        hashOfPin,
-                        nameOnCard,
-                        networkProcessorName);
-
-                if (!customerIdsAndDebitCards.containsKey(customerID))
-                    customerIdsAndDebitCards.put(customerID, new ArrayList<>());
-                customerIdsAndDebitCards.get(customerID).add(debitCard);
-            }
-
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
-        }
-
-        return customerIdsAndDebitCards;
-    }
-
-    private static Map<String, List<Loan>> readLoans(List<CurrentAccount> currentAccounts) {
-        final Map<String, List<Loan>> customerIdsAndLoans = new HashMap<>();
-        final String sqlScript = "select a.*, c.customer_id " +
-                "from loans a " +
-                "inner join current_accounts b on a.associated_iban=b.iban " +
-                "inner join customers c on b.customer_id=c.customer_id;";
-        try {
-            ResultSet databaseLoans = Database.databaseConnection.createStatement().executeQuery(sqlScript);
-            while (databaseLoans.next()) {
-                final String loanID = databaseLoans.getString(1);
-                final LocalDate openDate = DateFromString.get(databaseLoans.getString(2));
-                final int maturityInMonths = databaseLoans.getInt(3);
-                final double loanInitialAmount = databaseLoans.getDouble(4);
-                final double loanCurrentAmount = databaseLoans.getDouble(5);
-                final double loanInterestRate = databaseLoans.getDouble(6);
-                final int indexToNextPayment = databaseLoans.getInt(7);
-                final String associatedIban = databaseLoans.getString(8);
-                final String customerID = databaseLoans.getString(9);
-
-                final CurrentAccount currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
-
-                Loan loan = new Loan(currentAccount,
-                        loanID,
-                        loanInterestRate,
-                        maturityInMonths,
-                        indexToNextPayment,
-                        loanInitialAmount,
-                        loanCurrentAmount,
-                        openDate);
-
-                if (!customerIdsAndLoans.containsKey(customerID))
-                    customerIdsAndLoans.put(customerID, new ArrayList<>());
-                customerIdsAndLoans.get(customerID).add(loan);
-            }
-
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
-        }
-
-        return customerIdsAndLoans;
-    }
-
-    private static Map<String, List<TransactionLogger>> readCurrentAccountTransactions() {
+    private static Map<String, List<TransactionLogger>> readCurrentAccountTransactions() throws SQLException {
         final Map<String, List<TransactionLogger>> currentAccountsAndTransactions = new HashMap<>();
+
         final String sqlScript = "select * from current_account_transactions;";
-        try {
-            ResultSet databaseTransactions = Database.databaseConnection.createStatement().executeQuery(sqlScript);
-            while (databaseTransactions.next()) {
-                final String transactionID = databaseTransactions.getString(1);
-                final LocalDate transactionDate = DateFromString.get(databaseTransactions.getString(2));
-                final TransactionType transactionType = databaseTransactions.getString(3).equals(TransactionType.CREDIT.toString().toLowerCase()) ? TransactionType.CREDIT : TransactionType.DEBIT;
-                final double amount = databaseTransactions.getDouble(4);
-                final String transactionDetail = databaseTransactions.getString(5);
-                final String associatedIban = databaseTransactions.getString(6);
+        final ResultSet databaseTransactions = Database.databaseConnection.createStatement().executeQuery(sqlScript);
 
-                final TransactionLogger transaction = new TransactionLogger(transactionID, transactionType, amount, transactionDetail, transactionDate);
+        while (databaseTransactions.next()) {
+            final String transactionID = databaseTransactions.getString(1);
+            final LocalDate transactionDate = DateFromString.get(databaseTransactions.getString(2));
+            final TransactionType transactionType = databaseTransactions.getString(3).equals(TransactionType.CREDIT.toString().toLowerCase()) ? TransactionType.CREDIT : TransactionType.DEBIT;
+            final double amount = databaseTransactions.getDouble(4);
+            final String transactionDetail = databaseTransactions.getString(5);
+            final String associatedIban = databaseTransactions.getString(6);
 
-                if (!currentAccountsAndTransactions.containsKey(associatedIban))
-                    currentAccountsAndTransactions.put(associatedIban, new ArrayList<>());
-                currentAccountsAndTransactions.get(associatedIban).add(transaction);
-            }
+            final TransactionLogger transaction = new TransactionLogger(transactionID, transactionType, amount, transactionDetail, transactionDate);
 
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-            System.exit(Codes.EXIT_ON_ERROR);
+            if (!currentAccountsAndTransactions.containsKey(associatedIban))
+                currentAccountsAndTransactions.put(associatedIban, new ArrayList<>());
+            currentAccountsAndTransactions.get(associatedIban).add(transaction);
         }
 
         return currentAccountsAndTransactions;
     }
 
     public static void readCustomersAndProducts(Bank bank) {
-        // section 1: read from database the bank's customers
-        List<Customer> databaseCustomers = Database.readCustomers();
+        List<Customer> databaseCustomers = null;
 
-        // section 2: read the products from the database
-        // link each product to the right customer
+        try {
+            // section 1: read from database the bank's customers
+            databaseCustomers = Database.readCustomers();
 
-        // start with the current accounts because any other product requires the information related to a given current account
-        Map<String, List<CurrentAccount>> customerIdsAndCurrentAccounts = Database.readCurrentAccounts();
-        Database.addProductsToCustomers(customerIdsAndCurrentAccounts, databaseCustomers);
+            // section 2: read the products from the database
+            // link each product to the right customer
 
-        // get a list with all current accounts read from database
-        List<CurrentAccount> currentAccounts = Database.getAllDatabaseCurrentAccounts(customerIdsAndCurrentAccounts);
+            // start with the current accounts because any other product requires the information related to a given current account
+            Map<String, List<CurrentAccount>> customersIdAndCurrentAccounts = Database.getCustomersIdAndProducts(ProductType.CURRENT_ACCOUNT, null);
+            Database.addProductsToCustomers(customersIdAndCurrentAccounts, databaseCustomers);
 
-        // read the deposits
-        Map<String, List<Deposit>> customerIdsAndDeposits = Database.readDeposits(currentAccounts);
-        Database.addProductsToCustomers(customerIdsAndDeposits, databaseCustomers);
+            // get a list with all current accounts read from database
+            List<CurrentAccount> currentAccounts = Database.getAllDatabaseCurrentAccounts(customersIdAndCurrentAccounts);
 
-        // read the debit cards
-        Map<String, List<DebitCard>> customersIdsAndDebitCards = Database.readDebitCards(currentAccounts);
-        Database.addProductsToCustomers(customersIdsAndDebitCards, databaseCustomers);
+            // read the deposits
+            Map<String, List<Deposit>> customersIdAndDeposits = Database.getCustomersIdAndProducts(ProductType.DEPOSIT, currentAccounts);
+            Database.addProductsToCustomers(customersIdAndDeposits, databaseCustomers);
 
-        // read the loans
-        Map<String, List<Loan>> customerIdsAndLoans = Database.readLoans(currentAccounts);
-        Database.addProductsToCustomers(customerIdsAndLoans, databaseCustomers);
+            // read the debit cards
+            Map<String, List<DebitCard>> customersIdAndDebitCards = Database.getCustomersIdAndProducts(ProductType.DEBIT_CARD, currentAccounts);
+            Database.addProductsToCustomers(customersIdAndDebitCards, databaseCustomers);
 
-        // read the transactions related to the current accounts
-        // link each transaction to the right current account
-        Map<String, List<TransactionLogger>> ibansAndTransactions = Database.readCurrentAccountTransactions();
-        Database.addTransactionsToCurrentAccounts(currentAccounts, ibansAndTransactions);
+            // read the loans
+            Map<String, List<Loan>> customersIdAndLoans = Database.getCustomersIdAndProducts(ProductType.LOAN, currentAccounts);
+            Database.addProductsToCustomers(customersIdAndLoans, databaseCustomers);
+
+            // read the transactions related to the current accounts
+            // link each transaction to the right current account
+            Map<String, List<TransactionLogger>> ibansAndTransactions = Database.readCurrentAccountTransactions();
+            Database.addTransactionsToCurrentAccounts(currentAccounts, ibansAndTransactions);
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
 
         // section 3: link the customers read from mysql database to the bank's customers data structure
         bank.setCustomers(databaseCustomers);
+    }
+
+    private static <T extends Product> Map<String, List<T>>
+    getCustomersIdAndProducts(ProductType productType,
+                              List<CurrentAccount> currentAccounts) throws SQLException {
+        Map<String, List<T>> customersIdAndProducts = new HashMap<>();
+
+        String sqlScript = null;
+        ResultSet databaseProducts = null;
+        CurrentAccount currentAccount = null;
+        T product = null;
+
+        switch (productType) {
+            case DEBIT_CARD -> {
+                sqlScript = "select a.*, c.customer_id " +
+                        "from debit_cards a " +
+                        "inner join current_accounts b on a.associated_iban=b.iban " +
+                        "inner join customers c on b.customer_id=c.customer_id;";
+                databaseProducts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+                while (databaseProducts.next()) {
+                    final String cardID = databaseProducts.getString(1);
+                    final LocalDate openingDate = DateFromString.get(databaseProducts.getString(2));
+                    final LocalDate expirationDate = DateFromString.get(databaseProducts.getString(3));
+                    final String hashOfPin = databaseProducts.getString(4);
+                    final String nameOnCard = databaseProducts.getString(5);
+                    final String networkProcessorName = databaseProducts.getString(6);
+                    final String associatedIban = databaseProducts.getString(7);
+                    final String customerID = databaseProducts.getString(8);
+
+                    currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                    final DebitCard debitCard = new DebitCard(currentAccount,
+                            cardID,
+                            openingDate,
+                            expirationDate,
+                            hashOfPin,
+                            nameOnCard,
+                            networkProcessorName);
+                    product = (T) debitCard;
+
+                    if (!customersIdAndProducts.containsKey(customerID))
+                        customersIdAndProducts.put(customerID, new ArrayList<>());
+                    customersIdAndProducts.get(customerID).add(product);
+                }
+            }
+            case CURRENT_ACCOUNT -> {
+                sqlScript = "select * from current_accounts";
+                databaseProducts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+                while (databaseProducts.next()) {
+                    final String iban = databaseProducts.getString(1);
+                    final double amount = databaseProducts.getDouble(2);
+                    final Currency currency = new Currency(databaseProducts.getString(3));
+                    final LocalDate openingDate = DateFromString.get(databaseProducts.getString(4));
+                    final boolean primaryAccount = databaseProducts.getBoolean(5);
+                    final String customerID = databaseProducts.getString(6);
+
+                    product = (T) (new CurrentAccount(iban, amount, currency, openingDate));
+
+                    if (!customersIdAndProducts.containsKey(customerID))
+                        customersIdAndProducts.put(customerID, new ArrayList<>());
+
+                    // the primary account should always be the first product of a customer
+                    if (primaryAccount)
+                        customersIdAndProducts.get(customerID).add(0, product);
+                    else
+                        customersIdAndProducts.get(customerID).add(product);
+                }
+            }
+            case DEPOSIT -> {
+                sqlScript = "select a.*, c.customer_id " +
+                        "from deposits a " +
+                        "inner join current_accounts b on a.associated_iban=b.iban " +
+                        "inner join customers c on b.customer_id=c.customer_id;";
+                databaseProducts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+                while (databaseProducts.next()) {
+                    final String depositID = databaseProducts.getString(1);
+                    final double depositAmount = databaseProducts.getDouble(2);
+                    final double interestRate = databaseProducts.getDouble(3);
+                    final LocalDate openingDate = DateFromString.get(databaseProducts.getString(4));
+                    final LocalDate maturityDate = DateFromString.get(databaseProducts.getString(5));
+                    final String associatedIban = databaseProducts.getString(6);
+                    final String customerID = databaseProducts.getString(7);
+
+                    final int monthsInYear = 12;
+                    final Period period = Period.between(openingDate, maturityDate);
+                    final int maturityInMonths = period.getYears() * monthsInYear + period.getMonths();
+                    final double interestAmount = depositAmount * interestRate / 100 * maturityInMonths / monthsInYear;
+
+                    currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                    final Deposit deposit = new Deposit(currentAccount,
+                            openingDate,
+                            depositID,
+                            depositAmount,
+                            interestRate,
+                            interestAmount,
+                            maturityDate);
+                    product = (T) deposit;
+
+                    if (!customersIdAndProducts.containsKey(customerID))
+                        customersIdAndProducts.put(customerID, new ArrayList<>());
+                    customersIdAndProducts.get(customerID).add(product);
+                }
+            }
+            case LOAN -> {
+                sqlScript = "select a.*, c.customer_id " +
+                        "from loans a " +
+                        "inner join current_accounts b on a.associated_iban=b.iban " +
+                        "inner join customers c on b.customer_id=c.customer_id;";
+                databaseProducts = Database.databaseConnection.createStatement().executeQuery(sqlScript);
+
+                while (databaseProducts.next()) {
+                    final String loanID = databaseProducts.getString(1);
+                    final LocalDate openDate = DateFromString.get(databaseProducts.getString(2));
+                    final int maturityInMonths = databaseProducts.getInt(3);
+                    final double loanInitialAmount = databaseProducts.getDouble(4);
+                    final double loanCurrentAmount = databaseProducts.getDouble(5);
+                    final double loanInterestRate = databaseProducts.getDouble(6);
+                    final int indexToNextPayment = databaseProducts.getInt(7);
+                    final String associatedIban = databaseProducts.getString(8);
+                    final String customerID = databaseProducts.getString(9);
+
+                    currentAccount = Database.getCurrentAccount(currentAccounts, associatedIban);
+
+                    final Loan loan = new Loan(currentAccount,
+                            loanID,
+                            loanInterestRate,
+                            maturityInMonths,
+                            indexToNextPayment,
+                            loanInitialAmount,
+                            loanCurrentAmount,
+                            openDate);
+                    product = (T) loan;
+
+                    if (!customersIdAndProducts.containsKey(customerID))
+                        customersIdAndProducts.put(customerID, new ArrayList<>());
+                    customersIdAndProducts.get(customerID).add(product);
+                }
+            }
+        }
+
+        return customersIdAndProducts;
     }
 
     private static <T1 extends Product, T2 extends Customer>
@@ -464,7 +441,7 @@ public final class Database {
         // iban is unique
         // we always get a list with only one element
         // parameter currentAccounts already contains all banks's current accounts from mysql database
-        // thus this function will never return null
+        // thus, this function will never return null
         return currentAccounts
                 .stream()
                 .filter(account -> account.getIBAN().equals(iban))
@@ -474,7 +451,8 @@ public final class Database {
                 .orElse(null);
     }
 
-    private static List<CurrentAccount> getAllDatabaseCurrentAccounts(Map<String, List<CurrentAccount>> customersIdAndCurrentAccounts) {
+    private static List<CurrentAccount> getAllDatabaseCurrentAccounts
+            (Map<String, List<CurrentAccount>> customersIdAndCurrentAccounts) {
         return customersIdAndCurrentAccounts
                 .values()
                 .stream()
