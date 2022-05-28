@@ -12,6 +12,7 @@ import products.*;
 import transaction.TransactionLogger;
 import transaction.TransactionType;
 import utils.DateFromString;
+import utils.EncloseStringBetweenQuotes;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -94,7 +95,7 @@ public final class Database {
                 "customer_id varchar(13) not null, " +
                 "constraint iban_constraint check (char_length(iban)=34), " +
                 "constraint currency_constraint check (char_length(currency)=3), " +
-                "constraint customer_id_fk_constraint foreign key (customer_id) references customers(customer_id)" +
+                "constraint customer_id_fk_constraint foreign key (customer_id) references customers(customer_id) on delete cascade" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists deposits" +
                 "(" +
@@ -108,7 +109,7 @@ public final class Database {
                 "constraint deposit_amount_constraint check (deposit_amount>0), " +
                 "constraint deposit_interest_rate_constraint check (interest_rate>0), " +
                 "constraint deposit_maturity_date_constraint check (maturity_date>opening_date), " +
-                "constraint deposit_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
+                "constraint deposit_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban) on delete cascade" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists debit_cards" +
                 "(" +
@@ -122,7 +123,7 @@ public final class Database {
                 "constraint debit_card_card_id_constraint check (char_length(card_id)=16), " +
                 "constraint debit_card_expiration_date_constraint check (expiration_date>opening_date), " +
                 "constraint debit_card_hash_of_pin_constraint check (char_length(hash_of_pin)=64), " +
-                "constraint debit_card_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
+                "constraint debit_card_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban) on delete cascade" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists current_account_transactions" +
                 "(" +
@@ -135,7 +136,7 @@ public final class Database {
                 "constraint transaction_id_constraint check (char_length(transaction_id)=36), " +
                 "constraint transaction_type_constraint check (transaction_type='credit' or transaction_type='debit'), " +
                 "constraint transaction_amount_constraint check (amount>=0), " +
-                "constraint transaction_current_account_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban)" +
+                "constraint transaction_current_account_associated_iban_fk_constraint foreign key (associated_iban) references current_accounts(iban) on delete cascade" +
                 ")");
         sqlCreateTableCommands.add("create table if not exists loans" +
                 "(" +
@@ -153,7 +154,7 @@ public final class Database {
                 "constraint loan_current_amount_constraint check (loan_current_amount>=0), " +
                 "constraint loan_interest_rate_constraint check (loan_interest_rate>0), " +
                 "constraint index_to_next_payment_constraint check (index_to_next_payment>=0), " +
-                "constraint loan_associated_iban_constraint foreign key (associated_iban) references current_accounts(iban)" +
+                "constraint loan_associated_iban_constraint foreign key (associated_iban) references current_accounts(iban) on delete cascade" +
                 ")");
 
         return sqlCreateTableCommands;
@@ -475,5 +476,6 @@ public final class Database {
                                         .toList()
                         ));
     }
+
 }
 
