@@ -20,6 +20,7 @@ import utils.AmountFormatter;
 import javax.xml.crypto.Data;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class Bank implements BankActions {
     // when I write final String
@@ -359,8 +360,56 @@ public final class Bank implements BankActions {
         this.checkForLoansThatReachedPaymentDay();
     }
 
+    @Override
+    public void deleteCustomer(String customerID) {
+        int customerIndex = -1;
+
+        for (int index = 0; index < this.customers.size(); ++index)
+            if (this.customers.get(index).getUniqueID().equals(customerID)) {
+                customerIndex = index;
+                break;
+            }
+
+        if (customerIndex == -1) {
+            System.out.println("Bank message: operation not completed (there is no customer with the supplied id).");
+            return;
+        }
+
+        Customer customer = this.customers.get(customerIndex);
+
+        List<CurrentAccount> currentAccounts = customer.getProducts()
+                .stream()
+                .filter(product -> product instanceof CurrentAccount)
+                .map(product -> (CurrentAccount) product)
+                .toList();
+
+        for (CurrentAccount currentAccount : currentAccounts) {
+            if (customer.countDepositsAssociatedToCurrentAccount(currentAccount) > 0) {
+                System.out.println("Bank message: operation not completed (there are deposits associated to this customer).");
+                return;
+            }
+
+            if (customer.countLoansAssociatedToCurrentAccount(currentAccount) > 0) {
+                System.out.println("Bank message: operation not completed (there are loans associated to this customer).");
+                return;
+            }
+
+            if (currentAccount.getAmount() > 0) {
+                System.out.println("Bank message: operation not completed (there are current accounts with balance>0 associated to this customer).");
+                return;
+            }
+        }
+
+        this.customers.remove(customerIndex);
+
+        AuditService.addLoggingData(UserType.BANK_MANAGER, "delete customer with id= " + customerID);
+        Database.deleteCustomer(customerID);
+    }
+
     // folosesc functii private fiindca nu vreau sa fie accesibile in afara clasei
     private void checkForDepositsThatReachedMaturity() {
+        List<String> depositsIdToDeleteFromDatabase = new ArrayList<>();
+
         for (Customer customer : this.customers) {
             List<Integer> productIndexes = new ArrayList<Integer>();
             int productIndex = -1;
@@ -370,6 +419,7 @@ public final class Bank implements BankActions {
                     Deposit deposit = (Deposit) product;
                     if (deposit.doesDepositReachedMaturity()) {
                         productIndexes.add(Integer.valueOf(productIndex));
+                        depositsIdToDeleteFromDatabase.add(deposit.getDepositId());
 
                         double principal = deposit.getDepositAmount();
                         double interest = deposit.getInterestAtMaturity();
@@ -400,9 +450,13 @@ public final class Bank implements BankActions {
             for (Integer indexOfProductToDelete : productIndexes)
                 customer.getProducts().remove(indexOfProductToDelete.intValue() - (count++));
         }
+        depositsIdToDeleteFromDatabase
+                .forEach(depositID -> Database.deleteProduct(ProductType.DEPOSIT, depositID));
     }
 
     private void checkForLoansThatReachedPaymentDay() {
+        List<String> loansIdToDeleteFromDatabase=new ArrayList<>();
+
         for (Customer customer : this.customers) {
             ArrayList<Integer> productIndexes = new ArrayList<>();
             int productIndex = -1;
@@ -448,6 +502,7 @@ public final class Bank implements BankActions {
 
                         if (indexToNextPaymentDate == (loan.getMaturityInMonths() - 1)) {
                             productIndexes.add(Integer.valueOf(productIndex));
+                            loansIdToDeleteFromDatabase.add(loan.getLoanId());
                             break;
                         }
                     }
@@ -457,6 +512,7 @@ public final class Bank implements BankActions {
             for (Integer indexOfProductToDelete : productIndexes)
                 customer.getProducts().remove(indexOfProductToDelete.intValue() - (count++));
         }
+        loansIdToDeleteFromDatabase.forEach(loanID->Database.deleteProduct(ProductType.LOAN,loanID));
     }
 
 

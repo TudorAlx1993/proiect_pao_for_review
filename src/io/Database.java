@@ -3,6 +3,7 @@ package io;
 import address.Address;
 import bank.Bank;
 import configs.Codes;
+import configs.DataBaseConfig;
 import currency.Currency;
 import customers.Company;
 import customers.Customer;
@@ -14,6 +15,7 @@ import transaction.TransactionType;
 import utils.DateFromString;
 import utils.EncloseStringBetweenQuotes;
 
+import javax.xml.crypto.Data;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -671,6 +673,39 @@ public final class Database {
             preparedStatement.setString(5, transactionDetail);
             preparedStatement.setString(6, associatedIban);
 
+            preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+    }
+
+    public static void deleteCustomer(String customerID) {
+        // this will trigger a deletion on cascade
+
+        final String sqlScript = "delete from customers where customer_id=?";
+
+        try {
+            PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+            preparedStatement.setString(1, customerID);
+            preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+    }
+
+    public static void deleteProduct(ProductType productType, String productID) {
+        final Map<ProductType, String> sqlScripts = DataBaseConfig.getSqlDeleteScriptsPerProduct();
+
+        if (!sqlScripts.containsKey(productType)) {
+            System.err.println("Error: the database was not configured to perform delete transactions for product_type=" + productType.toString().toLowerCase() + "!");
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        try {
+            PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScripts.get(productType));
+            preparedStatement.setString(1, productID);
             preparedStatement.executeUpdate();
         } catch (SQLException exception) {
             exception.printStackTrace();

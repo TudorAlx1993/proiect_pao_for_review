@@ -70,3 +70,14 @@ LastNameTest1 FirstNameTest1 generated a statement for the current account with 
 LastNameTest1 FirstNameTest1 generated a statement for the current account with IBAN RO09FBOR44832802987969769344102283,09-10-2022 06:58:41
 LastName1 FirstName1 logged in,09-10-2022 07:00:11
 LastName1 FirstName1 generated a statement for the current account with IBAN RO09FBOR77971890051360302664707462,09-10-2022 07:00:29
+LastName1 FirstName1 logged in,09-10-2022 16:51:52
+LastName1 FirstName1 logged in,09-10-2022 17:23:11
+LastName1 FirstName1 viewed its debit cards,09-10-2022 17:23:16
+LastName1 FirstName1 requested a debit card for the current account with IBAN RO09FBOR77971890051360302664707462,09-10-2022 17:24:19
+LastName1 FirstName1 viewed its debit cards,09-10-2022 17:24:26
+LastNameTest1 FirstNameTest1 logged in,09-10-2022 17:28:19
+LastNameTest1 FirstNameTest1 viewed its debit cards,09-10-2022 17:28:24
+LastName1 FirstName1 logged in,09-10-2022 17:31:44
+LastNameTest1 FirstNameTest1 logged in,09-10-2022 17:48:36
+LastNameTest1 FirstNameTest1 logged in,09-10-2022 17:50:29
+LastNameTest1 FirstNameTest1 canceled the debit card associated with RO09FBOR44832802987969769344102283,09-10-2022 17:51:19

@@ -38,5 +38,7 @@ public interface BankActions {
     void showExchangeRates();
 
     void showSystemDate();
+
+    void deleteCustomer(String customerID);
 }
 

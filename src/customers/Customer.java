@@ -126,7 +126,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return count;
     }
 
-    private int countDepositsAssociatedToCurrentAccount(CurrentAccount currentAccount) {
+    public int countDepositsAssociatedToCurrentAccount(CurrentAccount currentAccount) {
         int count = 0;
         for (Product product : this.products)
             if (product instanceof Deposit)
@@ -136,7 +136,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return count;
     }
 
-    private int countLoansAssociatedToCurrentAccount(CurrentAccount currentAccount) {
+    public int countLoansAssociatedToCurrentAccount(CurrentAccount currentAccount) {
         int count = 0;
         for (Product product : this.products)
             if (product instanceof Loan)
@@ -181,6 +181,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
         String iban = currentAccount.getIBAN();
         this.products.remove(currentAccount);
+        Database.deleteProduct(ProductType.CURRENT_ACCOUNT, iban);
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " deleted the current account with IBAN " + iban);
     }
 
@@ -226,7 +227,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         DebitCard debitCard = null;
         for (Product product : this.products)
             if (product instanceof DebitCard)
-                if (((DebitCard) product).getCurrentAcount().equals(currentAccount)) {
+                if (((DebitCard) product).getCurrentAcount().getIBAN().equals(currentAccount.getIBAN())) {
                     debitCard = (DebitCard) product;
                     break;
                 }
@@ -242,13 +243,16 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
         DebitCard debitCard = this.getDebitCard(currentAccount);
 
-        if (debitCard == null)
+        if (debitCard == null) {
+            System.out.println("Bank message: operation not completed (there are not debit cards associated to this current account).");
             return;
+        }
 
         // external API to inform the network processor that this card is invalid
         // ExternalApi.cancelCard((DebitCard) product);
 
         this.products.remove(debitCard);
+        Database.deleteProduct(ProductType.DEBIT_CARD, debitCard.getCardId());
         if (printMessage)
             AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card associated with " + currentAccount.getIBAN());
     }
@@ -311,6 +315,8 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 amount,
                 TransactionType.CREDIT,
                 TransactionDetail.LIQUIDATE_DEPOSIT);
+
+        Database.deleteProduct(ProductType.DEPOSIT, deposit.getDepositId());
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " liquidated before maturity a deposit of " + amount + currencyCode);
     }
 
