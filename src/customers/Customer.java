@@ -177,7 +177,14 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         // detete all the associated debit cards with the current account
-        this.deleteDebitCard(currentAccount, false);
+        List<DebitCard> debitCardsToDelete = this.getProducts()
+                .stream()
+                .filter(product -> product.getProductType().equals(ProductType.DEBIT_CARD))
+                .map(product -> (DebitCard) product)
+                .toList();
+        if (debitCardsToDelete.size() > 0)
+            for (int index = 0; index < debitCardsToDelete.size(); ++index)
+                this.deleteDebitCard(debitCardsToDelete.get(index), false);
 
         String iban = currentAccount.getIBAN();
         this.products.remove(currentAccount);
@@ -235,27 +242,18 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
     }
 
     @Override
-    public void deleteDebitCard(CurrentAccount currentAccount, boolean printMessage) {
-        if (!this.checkProduct(currentAccount.getProductUniqueId())) {
-            System.out.println("Bank message: operation not completed (this current account is not listed among your products).");
-            return;
-        }
-
-        DebitCard debitCard = this.getDebitCard(currentAccount);
-
+    public void deleteDebitCard(DebitCard debitCard, boolean printMessage) {
         if (debitCard == null) {
             System.out.println("Bank message: operation not completed (there are not debit cards associated to this current account).");
             return;
         }
 
-        // external API to inform the network processor that this card is invalid
-        // ExternalApi.cancelCard((DebitCard) product);
-
         this.products.remove(debitCard);
         Database.deleteProduct(ProductType.DEBIT_CARD, debitCard.getCardId());
         if (printMessage)
-            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card associated with " + currentAccount.getIBAN());
+            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card with id " + debitCard.getCardId());
     }
+
 
     @Override
     public void showMyProducts() {

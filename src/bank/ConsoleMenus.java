@@ -197,7 +197,7 @@ final class ConsoleMenus {
     }
 
     private static void showBankManagerOptions() {
-        String options = "Options:\n" +
+        String options = "\nOptions:\n" +
                 "\t 0) exit menu\n" +
                 "\t 1) show customers\n" +
                 "\t 2) show customer summary\n" +
@@ -339,9 +339,7 @@ final class ConsoleMenus {
                     break;
                 case 18:
                     customer.deleteDebitCard(
-                            ConsoleMenus.getCurrentAccountBasedOnUserSelection(
-                                    customer,
-                                    "Select the current account for which the debit card will be deleted: "),
+                            getDebitCardBasedOnUserSelection(customer,"Select the debit card to delete: "),
                             true);
                     break;
                 case 19:

@@ -20,7 +20,7 @@ interface CustomerOperations {
     void updateDebitCardPIN(DebitCard debitCard, String oldPIN, String newPIN);
 
     // done
-    void deleteDebitCard(CurrentAccount currentAccount, boolean printMessage);
+    void deleteDebitCard(DebitCard debitCard, boolean printMessage);
 
     // done
     void showMyProducts();
