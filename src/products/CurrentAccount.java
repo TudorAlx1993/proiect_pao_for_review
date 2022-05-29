@@ -3,6 +3,7 @@ package products;
 import configs.IBANConfig;
 import configs.SystemDate;
 import currency.Currency;
+import io.Database;
 import transaction.TransactionDetail;
 import transaction.TransactionLogger;
 import transaction.TransactionType;
@@ -40,13 +41,13 @@ public class CurrentAccount extends Product {
         this.iban = this.generateIBAN();
     }
 
-    public CurrentAccount(String iban,double amount,Currency currency,LocalDate openDate){
+    public CurrentAccount(String iban, double amount, Currency currency, LocalDate openDate) {
         // this construct will be used only when creating current accounts form csv files or database
 
-        super(currency,openDate);
+        super(currency, openDate);
 
-        this.iban=iban;
-        this.amount=amount;
+        this.iban = iban;
+        this.amount = amount;
     }
 
     public CurrentAccount(Currency currency) {
@@ -98,6 +99,8 @@ public class CurrentAccount extends Product {
 
         TransactionLogger transactionLogger = new TransactionLogger(transactionType, amount, details, date);
         this.transactions.add(transactionLogger);
+
+        Database.saveCurrentAccountTransaction(transactionLogger, this);
     }
 
     public void makeTransaction(double amount,
@@ -158,8 +161,8 @@ public class CurrentAccount extends Product {
         return CurrentAccount.noCurrentAccounts;
     }
 
-    public static void setNoCurrentAccounts(int noCurrentAccounts){
-        CurrentAccount.noCurrentAccounts=noCurrentAccounts;
+    public static void setNoCurrentAccounts(int noCurrentAccounts) {
+        CurrentAccount.noCurrentAccounts = noCurrentAccounts;
     }
 
     @Override

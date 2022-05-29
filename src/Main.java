@@ -77,7 +77,7 @@ public class Main {
         bank.runInConsole();
 
         // save the system date and static variables to csv files
-        bank.saveSystemDateAndStaticVariablesToCsvFiles();
+        //bank.saveSystemDateAndStaticVariablesToCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();

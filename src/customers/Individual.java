@@ -22,8 +22,8 @@ public class Individual extends Customer {
                       String phoneNumber,
                       String emailAddress,
                       Address address,
-                      boolean readfromCsvFileOrDatabase) {
-        super(password, phoneNumber, emailAddress, address,readfromCsvFileOrDatabase);
+                      boolean readFromCsvFileOrDatabase) {
+        super(password, phoneNumber, emailAddress, address, readFromCsvFileOrDatabase);
 
         try {
             this.checkCnp(cnp);

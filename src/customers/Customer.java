@@ -10,6 +10,7 @@ import currency.Currency;
 import exceptions.BlockedMailDomainException;
 import exceptions.InvalidPhoneNumberException;
 import exceptions.WeakPasswordException;
+import io.Database;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
@@ -49,9 +50,9 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return customer.products.size() - this.products.size();
     }
 
-    protected Customer(String password, String phoneNumber, String emailAddress, Address address, boolean readFromCsvFile) {
+    protected Customer(String password, String phoneNumber, String emailAddress, Address address, boolean readFromCsvFileOrDatabase) {
         try {
-            if (!readFromCsvFile)
+            if (!readFromCsvFileOrDatabase)
                 this.checkPasswordRequirments(password);
             this.checkMailDomain(emailAddress);
             this.checkPhoneNumber(phoneNumber);
@@ -66,7 +67,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         this.emailAddress = emailAddress;
         this.address = address;
 
-        if (!readFromCsvFile) {
+        if (!readFromCsvFileOrDatabase) {
             Customer.noOfCustomers += 1;
             this.addCurrentAccount("RON");
             this.hashOfPassword = Hash.computeHashOfString(password, CustomerConfig.getHashAlgorithm());
@@ -99,8 +100,11 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // when a customer (Individual or Company) is created, a current account in RON is added by default by a call to the super in the constructor
         // when super is called, the customer name is NULL
         // without the below if, null will appear within the log files as the customer name
-        if (this.getCustomerUniqueID() != null)
+        // also the default current account will be saved to database by a call in another script, where the customer id is already set
+        if (this.getCustomerUniqueID() != null) {
+            Database.saveNewProduct(currentAccount, this);
             AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " created a new current account in " + currencyCode + " with IBAN " + currentAccount.getIBAN());
+        }
     }
 
     private CurrentAccount getCurrentAccount(String iban) {
@@ -198,10 +202,12 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
             return;
         }
 
-        if (this.doesDebitCardExists(currentAccount)) {
-            System.out.println("Bank message: operation not completed (there is already a debit card associated to this current account).");
-            return;
-        }
+        // the database was designed to allow multiple debit cards on a current account
+        // thus, I comment the below lines
+        //if (this.doesDebitCardExists(currentAccount)) {
+        //    System.out.println("Bank message: operation not completed (there is already a debit card associated to this current account).");
+        //    return;
+        //}
 
         DebitCard card = new DebitCard(currentAccount, pin, this.getCustomerName(), networkProcessorName);
         this.products.add(card);
@@ -212,6 +218,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // InternalApi.deliverCard(card,this.getAddress());
         // ExternalApi.activateCard(card);
 
+        Database.saveNewProduct(card, this);
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " requested a debit card for the current account with IBAN " + currentAccount.getIBAN());
     }
 
@@ -741,5 +748,9 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 this.address.getStreetName(),
                 String.valueOf(this.address.getStreetNumber()),
                 this.address.getAdditionalInfo().equals("") ? "NA" : this.address.getAdditionalInfo());
+    }
+
+    protected void saveCustomerToDatabase(Customer customer) {
+        Database.saveNewCustomer(customer);
     }
 }

@@ -17,6 +17,7 @@ import transaction.TransactionDetail;
 import transaction.TransactionType;
 import utils.AmountFormatter;
 
+import javax.xml.crypto.Data;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -150,6 +151,9 @@ public final class Bank implements BankActions {
 
         this.customers.add(customer);
 
+        Database.saveNewCustomer(customer);
+        // also save the primary current account which is created by default when the customer is created
+        Database.saveNewProduct(customer.getProducts().get(0), customer);
         AuditService.addLoggingData(UserType.BANK_MANAGER, "added a new customer: " + customer.getCustomerName());
     }
 
@@ -565,6 +569,8 @@ public final class Bank implements BankActions {
         customer.getProducts().add(loan);
         this.modifyLiquidity(currentAccount.getCurrency(), -amount);
         currentAccount.makeTransaction(amount, TransactionType.CREDIT, TransactionDetail.LOAN_GRANTING);
+
+        Database.saveNewProduct(loan, customer);
     }
 
     public void createDeposit(Customer customer,
@@ -575,6 +581,8 @@ public final class Bank implements BankActions {
         customer.getProducts().add(deposit);
         this.modifyLiquidity(currentAccount.getCurrency(), depositAmount);
         currentAccount.makeTransaction(depositAmount, TransactionType.DEBIT, TransactionDetail.CREATE_DEPOSIT);
+
+        Database.saveNewProduct(deposit, customer);
     }
 
     public boolean addMoneyToCurrentAccount(double amount,

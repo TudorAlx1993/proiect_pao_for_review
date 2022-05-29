@@ -14,10 +14,8 @@ import transaction.TransactionType;
 import utils.DateFromString;
 import utils.EncloseStringBetweenQuotes;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.*;
@@ -475,6 +473,209 @@ public final class Database {
                                         .flatMap(Collection::stream)
                                         .toList()
                         ));
+    }
+
+    public static void saveNewCustomer(Customer customer) {
+        final String customerID = customer.getCustomerUniqueID();
+        final String customerType = customer.getCustomerType().toString().toLowerCase();
+        final String customerName = customer.getCustomerName();
+        final LocalDate birthDate = customer.getBirthDay();
+        final String hashOfPassword = customer.getHashOfPassword();
+        final String phoneNumber = customer.getPhoneNumber();
+        final String emailAddress = customer.getEmailAddress();
+        final String addressCountry = customer.getAddress().getCountry();
+        final String addressCity = customer.getAddress().getCity();
+        final String zipCode = customer.getAddress().getZipCode();
+        final String addressStreetName = customer.getAddress().getStreetName();
+        final int addressStreetNumber = customer.getAddress().getStreetNumber();
+        final String addressAdditionalInfo = customer.getAddress().getAdditionalInfo();
+
+        final String sqlScript = "insert into customers(customer_id,customer_type,customer_name,birth_date,hash_of_password,phone_number,email_address, address_country,address_city,address_zip_code,address_street_name,address_street_number,address_additional_info) " +
+                "values(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        try {
+            PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+            preparedStatement.setString(1, customerID);
+            preparedStatement.setString(2, customerType);
+            preparedStatement.setString(3, customerName);
+            preparedStatement.setDate(4, Date.valueOf(birthDate));
+            preparedStatement.setString(5, hashOfPassword);
+            preparedStatement.setString(6, phoneNumber);
+            preparedStatement.setString(7, emailAddress);
+            preparedStatement.setString(8, addressCountry);
+            preparedStatement.setString(9, addressCity);
+            preparedStatement.setString(10, zipCode);
+            preparedStatement.setString(11, addressStreetName);
+            preparedStatement.setInt(12, addressStreetNumber);
+            preparedStatement.setString(13, addressAdditionalInfo.equals("''") ? "null" : addressAdditionalInfo);
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+    }
+
+    public static void saveNewProduct(Product product, Customer productOwner) {
+        ProductType productType = product.getProductType();
+
+        switch (productType) {
+            case CURRENT_ACCOUNT -> {
+                final CurrentAccount currentAccount = (CurrentAccount) product;
+
+                final String iban = currentAccount.getIBAN();
+                final double amount = currentAccount.getAmount();
+                final String currency = currentAccount.getCurrency().getCurrencyCode();
+                final LocalDate openDate = currentAccount.getOpenDate();
+                // the first product is always the primary current account
+                final boolean primaryAccount = ((CurrentAccount) productOwner.getProducts().get(0)).getIBAN().equals(iban);
+                final String customerID = productOwner.getCustomerUniqueID();
+
+                final String sqlScript = "insert into current_accounts(iban,amount,currency,opening_date,primary_account,customer_id) " +
+                        "values(?,?,?,?,?,?)";
+
+                try {
+                    PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+                    preparedStatement.setString(1, iban);
+                    preparedStatement.setDouble(2, amount);
+                    preparedStatement.setString(3, currency);
+                    preparedStatement.setDate(4, Date.valueOf(openDate));
+                    preparedStatement.setBoolean(5, primaryAccount);
+                    preparedStatement.setString(6, customerID);
+
+                    preparedStatement.executeUpdate();
+                } catch (SQLException exception) {
+                    exception.printStackTrace();
+                    System.exit(Codes.EXIT_ON_ERROR);
+                }
+            }
+            case DEBIT_CARD -> {
+                final DebitCard debitCard = (DebitCard) product;
+
+                final String cardId = debitCard.getCardId();
+                final LocalDate openDate = debitCard.getOpenDate();
+                final LocalDate expirationDate = debitCard.getExpirationDate();
+                final String hashOfPin = debitCard.getHashOfPin();
+                final String nameOnCard = debitCard.getNameOnCard();
+                final String networkProcessorName = debitCard.getNetworkProcessorName();
+                final String associatedIban = debitCard.getCurrentAcount().getIBAN();
+
+                final String sqlScript = "insert into debit_cards(card_id,opening_date,expiration_date,hash_of_pin,name_on_card,network_processor_name,associated_iban) " +
+                        "values(?,?,?,?,?,?,?)";
+
+                try {
+                    PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+                    preparedStatement.setString(1, cardId);
+                    preparedStatement.setDate(2, Date.valueOf(openDate));
+                    preparedStatement.setDate(3, Date.valueOf(expirationDate));
+                    preparedStatement.setString(4, hashOfPin);
+                    preparedStatement.setString(5, nameOnCard);
+                    preparedStatement.setString(6, networkProcessorName);
+                    preparedStatement.setString(7, associatedIban);
+
+                    preparedStatement.executeUpdate();
+                } catch (SQLException exception) {
+                    exception.printStackTrace();
+                    System.exit(Codes.EXIT_ON_ERROR);
+                }
+
+            }
+
+            case DEPOSIT -> {
+                final Deposit deposit = (Deposit) product;
+
+                final String depositID = deposit.getDepositId();
+                final double depositAmount = deposit.getDepositAmount();
+                final double interestRate = deposit.getInterestRate();
+                final LocalDate openDate = deposit.getOpenDate();
+                final LocalDate depositMaturity = deposit.getDepositMaturity();
+                final String iban = deposit.getAssociatedCurrentAccount().getIBAN();
+
+                final String sqlScript = "insert into deposits(deposit_id,deposit_amount,interest_rate,opening_date,maturity_date,associated_iban) " +
+                        "values(?,?,?,?,?,?)";
+
+                try {
+                    PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+                    preparedStatement.setString(1, depositID);
+                    preparedStatement.setDouble(2, depositAmount);
+                    preparedStatement.setDouble(3, interestRate);
+                    preparedStatement.setDate(4, Date.valueOf(openDate));
+                    preparedStatement.setDate(5, Date.valueOf(depositMaturity));
+                    preparedStatement.setString(6, iban);
+
+                    preparedStatement.executeUpdate();
+                } catch (SQLException exception) {
+                    exception.printStackTrace();
+                    System.exit(Codes.EXIT_ON_ERROR);
+                }
+            }
+
+            case LOAN -> {
+                final Loan loan = (Loan) product;
+
+                final String loanId = loan.getLoanId();
+                final LocalDate openingDate = loan.getOpenDate();
+                final int maturityInMonths = loan.getMaturityInMonths();
+                final double initialAmount = loan.getLoanInitialAmount();
+                final double currentAmount = loan.getLoanCurrentAmount();
+                final double interestRate = loan.getInterestRate();
+                final int indexToNextPayment = loan.getIndexToNextPaymentDate();
+                final String associatedIban = loan.getCurrentAccount().getIBAN();
+
+                String sqlScript = "insert into loans(loan_id,opening_date,maturity_in_months,loan_initial_amount,loan_current_amount,loan_interest_rate,index_to_next_payment,associated_iban) " +
+                        "values(?,?,?,?,?,?,?,?)";
+
+                try {
+                    PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+                    preparedStatement.setString(1, loanId);
+                    preparedStatement.setDate(2, Date.valueOf(openingDate));
+                    preparedStatement.setInt(3, maturityInMonths);
+                    preparedStatement.setDouble(4, initialAmount);
+                    preparedStatement.setDouble(5, currentAmount);
+                    preparedStatement.setDouble(6, interestRate);
+                    preparedStatement.setInt(7, indexToNextPayment);
+                    preparedStatement.setString(8, associatedIban);
+
+                    preparedStatement.executeUpdate();
+                } catch (SQLException exception) {
+                    exception.printStackTrace();
+                    System.exit(Codes.EXIT_ON_ERROR);
+                }
+            }
+        }
+    }
+
+    public static void saveCurrentAccountTransaction(TransactionLogger transaction, CurrentAccount currentAccount) {
+        final String transactionId = transaction.getTransactionId();
+        final LocalDate transactionDate = transaction.getDate();
+        final String transactionType = transaction.getTransactionType();
+        final double amount = transaction.getAmount();
+        final String transactionDetail = transaction.getTransactionDetail();
+        final String associatedIban = currentAccount.getIBAN();
+
+        final String sqlScript = "insert into current_account_transactions(transaction_id,transaction_date,transaction_type,amount,transaction_detail,associated_iban) " +
+                "values(?,?,?,?,?,?)";
+
+        try {
+            PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript);
+
+            preparedStatement.setString(1, transactionId);
+            preparedStatement.setDate(2, Date.valueOf(transactionDate));
+            preparedStatement.setString(3, transactionType);
+            preparedStatement.setDouble(4, amount);
+            preparedStatement.setString(5, transactionDetail);
+            preparedStatement.setString(6, associatedIban);
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
     }
 
 }
