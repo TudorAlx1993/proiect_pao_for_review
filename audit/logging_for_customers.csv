@@ -118,3 +118,17 @@ testCompany SA requested a debit card for the current account with IBAN RO09FBOR
 testCompany SA withdrawn 400.0RON from ATM using the debit card associated to RO09FBOR45383050605433867958750739,09-10-2022 00:00:02
 testCompany SA viewed its products,09-10-2022 00:00:17
 testCompany SA generated a statement for the current account with IBAN RO09FBOR45383050605433867958750739,09-10-2022 00:00:25
+LastName1 FirstName1 logged in,09-10-2022 02:12:21
+LastName1 FirstName1 updated the password,09-10-2022 02:13:27
+LastName1 FirstName1 logged in,09-10-2022 02:16:44
+LastName1 FirstName1 logged in,09-10-2022 03:03:14
+LastName1 FirstName1 requested a debit card for the current account with IBAN RO09FBOR32815446179549736350109087,09-10-2022 03:03:56
+LastName1 FirstName1 updated the PIN of the debit card associated with RO09FBOR32815446179549736350109087,09-10-2022 03:04:38
+LastName1 FirstName1 logged in,09-10-2022 03:08:14
+LastName1 FirstName1 viewed its deposits,09-10-2022 03:08:22
+LastName1 FirstName1 created a deposit with an amount of 4000.0RON and a maturity of 9 months,09-10-2022 03:09:02
+LastName1 FirstName1 viewed its deposits,09-10-2022 03:09:21
+LastName1 FirstName1 viewed its current accounts,09-10-2022 03:10:00
+LastName1 FirstName1 viewed its deposits,09-10-2022 03:10:06
+LastName1 FirstName1 logged in,09-10-2022 03:10:43
+LastName1 FirstName1 viewed its deposits,09-10-2022 03:10:47

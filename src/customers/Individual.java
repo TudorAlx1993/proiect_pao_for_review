@@ -4,6 +4,8 @@ import address.Address;
 import configs.Codes;
 import configs.CustomerConfig;
 import exceptions.InvalidIdentificationCodeException;
+import io.Database;
+import io.DatabaseTable;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -136,6 +138,7 @@ public class Individual extends Customer {
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
+        Database.updateEntity(DatabaseTable.CUSTOMERS,"customer_name",this.getCustomerName(),this.getUniqueID());
     }
 
     public String getLastName() {
@@ -144,6 +147,7 @@ public class Individual extends Customer {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+        Database.updateEntity(DatabaseTable.CUSTOMERS,"customer_name",this.getCustomerName(),this.getUniqueID());
     }
 
     @Override

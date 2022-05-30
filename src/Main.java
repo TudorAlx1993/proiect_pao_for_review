@@ -5,6 +5,7 @@ import customers.Company;
 import customers.Customer;
 import customers.Individual;
 import io.Database;
+import io.DatabaseTable;
 import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;

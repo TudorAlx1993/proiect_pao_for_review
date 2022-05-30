@@ -5,6 +5,8 @@ import configs.Codes;
 import configs.SystemDate;
 import exceptions.NotSupportedCardNetworkProcessor;
 import exceptions.WeakPasswordException;
+import io.Database;
+import io.DatabaseTable;
 import regulations.NationalBankRegulations;
 import utils.Hash;
 
@@ -118,6 +120,7 @@ public class DebitCard extends Product {
         }
 
         this.hashOfPin = Hash.computeHashOfString(newPin, CardConfig.getPinHashAlg());
+        Database.updateEntity(DatabaseTable.DEBIT_CARDS,"hash_of_pin",this.hashOfPin,this.getProductUniqueId());
     }
 
     private LocalDate generateExpirationDate() {

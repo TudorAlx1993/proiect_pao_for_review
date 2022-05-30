@@ -3,7 +3,7 @@ package io;
 import address.Address;
 import bank.Bank;
 import configs.Codes;
-import configs.DataBaseConfig;
+import configs.DatabaseConfig;
 import currency.Currency;
 import customers.Company;
 import customers.Customer;
@@ -13,9 +13,7 @@ import products.*;
 import transaction.TransactionLogger;
 import transaction.TransactionType;
 import utils.DateFromString;
-import utils.EncloseStringBetweenQuotes;
 
-import javax.xml.crypto.Data;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -696,7 +694,7 @@ public final class Database {
     }
 
     public static void deleteProduct(ProductType productType, String productID) {
-        final Map<ProductType, String> sqlScripts = DataBaseConfig.getSqlDeleteScriptsPerProduct();
+        final Map<ProductType, String> sqlScripts = DatabaseConfig.getSqlDeleteScriptPerProduct();
 
         if (!sqlScripts.containsKey(productType)) {
             System.err.println("Error: the database was not configured to perform delete transactions for product_type=" + productType.toString().toLowerCase() + "!");
@@ -713,5 +711,43 @@ public final class Database {
         }
     }
 
+    public static <T> void updateEntity(DatabaseTable tableName, String fieldName, T fieldValue, String uniqueID) {
+        if (!DatabaseConfig.getKeyNamePerDatabaseTable().containsKey(tableName)) {
+            System.err.println("Error: database table not configurated! Please check the static function configurateKeyNamePerDatabaseTable from DatabaseConfig class (package configs)!");
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+
+        final StringBuilder sqlScript = new StringBuilder();
+        sqlScript.append("update ");
+        sqlScript.append(tableName.toString().toLowerCase());
+        sqlScript.append(" set ");
+        sqlScript.append(fieldName);
+        sqlScript.append("=? where ");
+        sqlScript.append(DatabaseConfig.getKeyNamePerDatabaseTable().get(tableName));
+        sqlScript.append("=?");
+
+        try {
+            PreparedStatement preparedStatement = Database.databaseConnection.prepareStatement(sqlScript.toString());
+
+            if (fieldValue instanceof String)
+                preparedStatement.setString(1, (String) fieldValue);
+            else if (fieldValue instanceof Integer)
+                preparedStatement.setInt(1, ((Integer) fieldValue).intValue());
+            else if (fieldValue instanceof Double)
+                preparedStatement.setDouble(1, ((Double) fieldValue).doubleValue());
+            else if (fieldValue instanceof LocalDate)
+                preparedStatement.setDate(1, Date.valueOf(((LocalDate) fieldValue)));
+            else {
+                System.err.println("Error: data type not implemented!");
+                System.exit(Codes.EXIT_ON_ERROR);
+            }
+            preparedStatement.setString(2, uniqueID);
+
+            preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            System.exit(Codes.EXIT_ON_ERROR);
+        }
+    }
 }
 

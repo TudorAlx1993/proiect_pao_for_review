@@ -11,6 +11,7 @@ import exceptions.BlockedMailDomainException;
 import exceptions.InvalidPhoneNumberException;
 import exceptions.WeakPasswordException;
 import io.Database;
+import io.DatabaseTable;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
@@ -646,6 +647,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.hashOfPassword = Hash.computeHashOfString(newPassword, CustomerConfig.getHashAlgorithm());
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "hash_of_password", this.hashOfPassword, this.getUniqueID());
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " updated the password");
     }
 
@@ -674,6 +676,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.phoneNumber = phoneNumber;
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "phone_number", this.phoneNumber, this.getUniqueID());
     }
 
     public String getEmailAddress() {
@@ -689,6 +692,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.emailAddress = emailAddress;
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "email_address", this.emailAddress, this.getUniqueID());
     }
 
     public Address getAddress() {
@@ -756,5 +760,44 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
 
     protected void saveCustomerToDatabase(Customer customer) {
         Database.saveNewCustomer(customer);
+    }
+
+    public void updateAddress(String country,
+                              String city,
+                              String zipCode,
+                              String streetName,
+                              Integer streetNumber,
+                              String additionalInfo) {
+        // call this function with null for the parameters that you don't want to modify
+
+        if (country != null) {
+            this.address.setCountry(country);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_country", country, this.getUniqueID());
+        }
+
+        if (city != null) {
+            this.address.setCity(city);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_city", city, this.getUniqueID());
+        }
+
+        if (zipCode != null) {
+            this.address.setZipCode(zipCode);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_zip_code", zipCode, this.getUniqueID());
+        }
+
+        if (streetName != null) {
+            this.address.setStreetName(streetName);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_street_name", streetName, this.getUniqueID());
+        }
+
+        if (streetNumber != null) {
+            this.address.setStreetNumber(streetNumber.intValue());
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_street_number", streetNumber, this.getUniqueID());
+        }
+
+        if (additionalInfo != null) {
+            this.address.setAdditionalInfo(additionalInfo);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_additional_info", additionalInfo, this.getUniqueID());
+        }
     }
 }
