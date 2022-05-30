@@ -4,6 +4,8 @@ import address.Address;
 import configs.Codes;
 import configs.CustomerConfig;
 import exceptions.InvalidIdentificationCodeException;
+import io.Database;
+import io.DatabaseTable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -24,8 +26,8 @@ public class Company extends Customer {
                    String phoneNumber,
                    String emailAddress,
                    Address address,
-                   boolean readFromCsvFile) {
-        super(password, phoneNumber, emailAddress, address, readFromCsvFile);
+                   boolean readFromCsvFileOrDatabase) {
+        super(password, phoneNumber, emailAddress, address, readFromCsvFileOrDatabase);
 
         try {
             this.checkCui(cui);
@@ -80,6 +82,7 @@ public class Company extends Customer {
 
     public void setCompanyName(String companyName) {
         this.companyName = companyName;
+        Database.updateEntity(DatabaseTable.CUSTOMERS,"customer_name",this.companyName,this.getUniqueID());
     }
 
     @Override

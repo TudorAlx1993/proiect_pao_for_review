@@ -67,7 +67,7 @@ public final class BankCustomersAndProductsCsvWriter {
         productsFileLines.get(productType).add(this.getEntityDataAsListOfStrings(product, customerId));
     }
 
-    public void save() {
+    public void saveSystemDateAndStaticVariables(){
         final String directoryPath = DataStorage.getPath();
 
         // section 1: save the system date
@@ -83,15 +83,22 @@ public final class BankCustomersAndProductsCsvWriter {
         staticVariableFileLines.add(this.getHeaderForCsvFileOfStaticVariables());
         staticVariableFileLines.addAll(this.getStaticVariables());
         CsvFileWriter.getInstance().saveData(fileName, staticVariableFileLines);
+    }
 
-        // section 3: save the information related to bank's customers
-        fileName = Paths.get(directoryPath, "customers.csv").toString();
+    public void save() {
+        final String directoryPath = DataStorage.getPath();
+
+        // section 1: save system date and static variables
+        this.saveSystemDateAndStaticVariables();
+
+        // section 2: save the information related to bank's customers
+        String fileName = Paths.get(directoryPath, "customers.csv").toString();
         final List<List<String>> customersFileLines = new ArrayList<>();
         customersFileLines.add(Customer.getHeaderForCsvFile());
         this.bank.getCustomers().forEach((customer) -> customersFileLines.add(this.getEntityDataAsListOfStrings(customer)));
         CsvFileWriter.getInstance().saveData(fileName, customersFileLines);
 
-        // section 4: save the information related to the customer's products
+        // section 3: save the information related to the customer's products
         final Map<ProductType, List<List<String>>> productsFileLines = new HashMap<>();
         this.bank.getCustomers().
                 forEach(customer -> customer
@@ -99,7 +106,7 @@ public final class BankCustomersAndProductsCsvWriter {
                         .forEach(product -> this.addProductDataToProductFileLines(product, productsFileLines, customer.getCustomerUniqueID())));
         productsFileLines.forEach((productType, fileContent) -> CsvFileWriter.getInstance().saveData(Paths.get(directoryPath, productType.toString() + CsvFileConfig.getFileExtension()).toString().toLowerCase(), fileContent));
 
-        // section 5: save the historical transactions of the current accounts
+        // section 4: save the historical transactions of the current accounts
         // toate tranzactiile (indiferent de contul curent) vor fi salvata in acelasi fisier
         // pe fiecare linie din fisierul csv va fi salvat inclusiv id-ul contului curent (IBAN) pentru a sti carui cont curent este asociata o anumita tranzactie
         fileName = Paths.get(directoryPath, "transaction_logger.csv").toString();

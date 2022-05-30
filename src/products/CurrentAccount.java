@@ -3,6 +3,8 @@ package products;
 import configs.IBANConfig;
 import configs.SystemDate;
 import currency.Currency;
+import io.Database;
+import io.DatabaseTable;
 import transaction.TransactionDetail;
 import transaction.TransactionLogger;
 import transaction.TransactionType;
@@ -40,13 +42,13 @@ public class CurrentAccount extends Product {
         this.iban = this.generateIBAN();
     }
 
-    public CurrentAccount(String iban,double amount,Currency currency,LocalDate openDate){
-        // this construct will be used only when creating current accounts form csv files
+    public CurrentAccount(String iban, double amount, Currency currency, LocalDate openDate) {
+        // this construct will be used only when creating current accounts form csv files or database
 
-        super(currency,openDate);
+        super(currency, openDate);
 
-        this.iban=iban;
-        this.amount=amount;
+        this.iban = iban;
+        this.amount = amount;
     }
 
     public CurrentAccount(Currency currency) {
@@ -98,6 +100,9 @@ public class CurrentAccount extends Product {
 
         TransactionLogger transactionLogger = new TransactionLogger(transactionType, amount, details, date);
         this.transactions.add(transactionLogger);
+
+        Database.updateEntity(DatabaseTable.CURRENT_ACCOUNTS, "amount", this.amount, this.getProductUniqueId());
+        Database.saveCurrentAccountTransaction(transactionLogger, this);
     }
 
     public void makeTransaction(double amount,
@@ -117,7 +122,7 @@ public class CurrentAccount extends Product {
             case WITHDRAW_MONEY_FROM_ATM:
                 return "money withdraw from ATM";
             case WITHDRAW_FEE_FROM_ATM:
-                return "ATM's withdraw fee";
+                return "ATM withdraw fee";
             case INTERNAL_PAYMENT_FEE:
                 return "internal payment fee";
             case EXTERNAL_PAYMENT_FEE:
@@ -158,8 +163,8 @@ public class CurrentAccount extends Product {
         return CurrentAccount.noCurrentAccounts;
     }
 
-    public static void setNoCurrentAccounts(int noCurrentAccounts){
-        CurrentAccount.noCurrentAccounts=noCurrentAccounts;
+    public static void setNoCurrentAccounts(int noCurrentAccounts) {
+        CurrentAccount.noCurrentAccounts = noCurrentAccounts;
     }
 
     @Override

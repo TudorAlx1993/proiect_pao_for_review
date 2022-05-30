@@ -1,15 +1,10 @@
-import address.Address;
 import configs.*;
 import currency.Currency;
-import customers.Company;
-import customers.Customer;
-import customers.Individual;
-import products.CurrentAccount;
+import io.Database;
 import bank.Bank;
 import audit.AuditService;
 
 import java.lang.Math;
-import java.time.LocalDate;
 
 public class Main {
     public static void main(String[] args) {
@@ -62,8 +57,11 @@ public class Main {
         // show the offered interest rates by bank
         InterestRateConfig.showInterestRates();
 
-        // read the bank customers and their products from csv files
-        bank.readCustomersAndProductsFromCsvFiles();
+        // read the system date and static variables from csv files
+        bank.readSystemDateAndStaticVariablesFromCsvFiles();
+
+        // read the bank customers and their products from mysql database
+        bank.readCustomersAndProductsFromDatabase();
 
         // run program in console interface
         // example credentials: 1930729000000 and parola1
@@ -71,10 +69,14 @@ public class Main {
         System.out.println("");
         bank.runInConsole();
 
-        // save the bank customers and their products to csv files
-        bank.saveCustomersAndProductsToCsvFile();
+        // save the system date and static variables to csv files
+        bank.saveSystemDateAndStaticVariablesToCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();
+
+        // close the database connection
+        Database.closeDatabaseConnection();
     }
 }
+

@@ -36,7 +36,7 @@ public class Deposit extends Product {
                    double interestRate,
                    double interest,
                    LocalDate depositMaturity) {
-        // this constructor will be used on reading from csv file
+        // this constructor will be used on reading from csv file or mysql database
 
         super(currentAccount.getCurrency(), openDate);
 

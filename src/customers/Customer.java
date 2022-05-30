@@ -10,6 +10,8 @@ import currency.Currency;
 import exceptions.BlockedMailDomainException;
 import exceptions.InvalidPhoneNumberException;
 import exceptions.WeakPasswordException;
+import io.Database;
+import io.DatabaseTable;
 import products.*;
 import services.ExchangeRateService;
 import transaction.TransactionDetail;
@@ -49,9 +51,9 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return customer.products.size() - this.products.size();
     }
 
-    protected Customer(String password, String phoneNumber, String emailAddress, Address address, boolean readFromCsvFile) {
+    protected Customer(String password, String phoneNumber, String emailAddress, Address address, boolean readFromCsvFileOrDatabase) {
         try {
-            if (!readFromCsvFile)
+            if (!readFromCsvFileOrDatabase)
                 this.checkPasswordRequirments(password);
             this.checkMailDomain(emailAddress);
             this.checkPhoneNumber(phoneNumber);
@@ -66,7 +68,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         this.emailAddress = emailAddress;
         this.address = address;
 
-        if (!readFromCsvFile) {
+        if (!readFromCsvFileOrDatabase) {
             Customer.noOfCustomers += 1;
             this.addCurrentAccount("RON");
             this.hashOfPassword = Hash.computeHashOfString(password, CustomerConfig.getHashAlgorithm());
@@ -99,8 +101,11 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // when a customer (Individual or Company) is created, a current account in RON is added by default by a call to the super in the constructor
         // when super is called, the customer name is NULL
         // without the below if, null will appear within the log files as the customer name
-        if (this.getCustomerUniqueID() != null)
+        // also the default current account will be saved to database by a call in another script, where the customer id is already set
+        if (this.getCustomerUniqueID() != null) {
+            Database.saveNewProduct(currentAccount, this);
             AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " created a new current account in " + currencyCode + " with IBAN " + currentAccount.getIBAN());
+        }
     }
 
     private CurrentAccount getCurrentAccount(String iban) {
@@ -122,7 +127,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return count;
     }
 
-    private int countDepositsAssociatedToCurrentAccount(CurrentAccount currentAccount) {
+    public int countDepositsAssociatedToCurrentAccount(CurrentAccount currentAccount) {
         int count = 0;
         for (Product product : this.products)
             if (product instanceof Deposit)
@@ -132,7 +137,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         return count;
     }
 
-    private int countLoansAssociatedToCurrentAccount(CurrentAccount currentAccount) {
+    public int countLoansAssociatedToCurrentAccount(CurrentAccount currentAccount) {
         int count = 0;
         for (Product product : this.products)
             if (product instanceof Loan)
@@ -173,10 +178,18 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         // detete all the associated debit cards with the current account
-        this.deleteDebitCard(currentAccount, false);
+        List<DebitCard> debitCardsToDelete = this.getProducts()
+                .stream()
+                .filter(product -> product.getProductType().equals(ProductType.DEBIT_CARD))
+                .map(product -> (DebitCard) product)
+                .toList();
+        if (debitCardsToDelete.size() > 0)
+            for (int index = 0; index < debitCardsToDelete.size(); ++index)
+                this.deleteDebitCard(debitCardsToDelete.get(index), false);
 
         String iban = currentAccount.getIBAN();
         this.products.remove(currentAccount);
+        Database.deleteProduct(ProductType.CURRENT_ACCOUNT, iban);
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " deleted the current account with IBAN " + iban);
     }
 
@@ -198,10 +211,12 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
             return;
         }
 
-        if (this.doesDebitCardExists(currentAccount)) {
-            System.out.println("Bank message: operation not completed (there is already a debit card associated to this current account).");
-            return;
-        }
+        // the database was designed to allow multiple debit cards on a current account
+        // thus, I comment the below lines
+        //if (this.doesDebitCardExists(currentAccount)) {
+        //    System.out.println("Bank message: operation not completed (there is already a debit card associated to this current account).");
+        //    return;
+        //}
 
         DebitCard card = new DebitCard(currentAccount, pin, this.getCustomerName(), networkProcessorName);
         this.products.add(card);
@@ -212,6 +227,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         // InternalApi.deliverCard(card,this.getAddress());
         // ExternalApi.activateCard(card);
 
+        Database.saveNewProduct(card, this);
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " requested a debit card for the current account with IBAN " + currentAccount.getIBAN());
     }
 
@@ -219,7 +235,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         DebitCard debitCard = null;
         for (Product product : this.products)
             if (product instanceof DebitCard)
-                if (((DebitCard) product).getCurrentAcount().equals(currentAccount)) {
+                if (((DebitCard) product).getCurrentAcount().getIBAN().equals(currentAccount.getIBAN())) {
                     debitCard = (DebitCard) product;
                     break;
                 }
@@ -227,24 +243,18 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
     }
 
     @Override
-    public void deleteDebitCard(CurrentAccount currentAccount, boolean printMessage) {
-        if (!this.checkProduct(currentAccount.getProductUniqueId())) {
-            System.out.println("Bank message: operation not completed (this current account is not listed among your products).");
+    public void deleteDebitCard(DebitCard debitCard, boolean printMessage) {
+        if (debitCard == null) {
+            System.out.println("Bank message: operation not completed (there are not debit cards associated to this current account).");
             return;
         }
 
-        DebitCard debitCard = this.getDebitCard(currentAccount);
-
-        if (debitCard == null)
-            return;
-
-        // external API to inform the network processor that this card is invalid
-        // ExternalApi.cancelCard((DebitCard) product);
-
         this.products.remove(debitCard);
+        Database.deleteProduct(ProductType.DEBIT_CARD, debitCard.getCardId());
         if (printMessage)
-            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card associated with " + currentAccount.getIBAN());
+            AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " canceled the debit card with id " + debitCard.getCardId());
     }
+
 
     @Override
     public void showMyProducts() {
@@ -304,6 +314,8 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 amount,
                 TransactionType.CREDIT,
                 TransactionDetail.LIQUIDATE_DEPOSIT);
+
+        Database.deleteProduct(ProductType.DEPOSIT, deposit.getDepositId());
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " liquidated before maturity a deposit of " + amount + currencyCode);
     }
 
@@ -635,6 +647,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.hashOfPassword = Hash.computeHashOfString(newPassword, CustomerConfig.getHashAlgorithm());
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "hash_of_password", this.hashOfPassword, this.getUniqueID());
         AuditService.addLoggingData(UserType.CUSTOMER, this.getCustomerName() + " updated the password");
     }
 
@@ -663,6 +676,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.phoneNumber = phoneNumber;
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "phone_number", this.phoneNumber, this.getUniqueID());
     }
 
     public String getEmailAddress() {
@@ -678,6 +692,7 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
         }
 
         this.emailAddress = emailAddress;
+        Database.updateEntity(DatabaseTable.CUSTOMERS, "email_address", this.emailAddress, this.getUniqueID());
     }
 
     public Address getAddress() {
@@ -741,5 +756,48 @@ public abstract class Customer implements Comparable<Customer>, CustomerOperatio
                 this.address.getStreetName(),
                 String.valueOf(this.address.getStreetNumber()),
                 this.address.getAdditionalInfo().equals("") ? "NA" : this.address.getAdditionalInfo());
+    }
+
+    protected void saveCustomerToDatabase(Customer customer) {
+        Database.saveNewCustomer(customer);
+    }
+
+    public void updateAddress(String country,
+                              String city,
+                              String zipCode,
+                              String streetName,
+                              Integer streetNumber,
+                              String additionalInfo) {
+        // call this function with null for the parameters that you don't want to modify
+
+        if (country != null) {
+            this.address.setCountry(country);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_country", country, this.getUniqueID());
+        }
+
+        if (city != null) {
+            this.address.setCity(city);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_city", city, this.getUniqueID());
+        }
+
+        if (zipCode != null) {
+            this.address.setZipCode(zipCode);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_zip_code", zipCode, this.getUniqueID());
+        }
+
+        if (streetName != null) {
+            this.address.setStreetName(streetName);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_street_name", streetName, this.getUniqueID());
+        }
+
+        if (streetNumber != null) {
+            this.address.setStreetNumber(streetNumber.intValue());
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_street_number", streetNumber, this.getUniqueID());
+        }
+
+        if (additionalInfo != null) {
+            this.address.setAdditionalInfo(additionalInfo);
+            Database.updateEntity(DatabaseTable.CUSTOMERS, "address_additional_info", additionalInfo, this.getUniqueID());
+        }
     }
 }

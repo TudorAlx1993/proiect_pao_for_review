@@ -9,6 +9,8 @@ import customers.CustomerType;
 import exceptions.InvalidInterestRateException;
 import exceptions.InvalidLoanMaturityException;
 import exceptions.NotImplementedCustomerException;
+import io.Database;
+import io.DatabaseTable;
 import utils.AmountFormatter;
 
 import java.time.LocalDate;
@@ -43,7 +45,7 @@ public class Loan extends Product {
                 double loanInitialAmount,
                 double loanCurrentAmount,
                 LocalDate openDate){
-        // this constructor will be used when reading from csv file
+        // this constructor will be used when reading from csv file and mysql database
         super(currentAccount.getCurrency(),openDate);
 
         this.loanId = loanId;
@@ -95,8 +97,11 @@ public class Loan extends Product {
 
     public void checkForUpdatedInterestRate() {
         Double newInterestRate = InterestRateConfig.getLoanInterestRate(this.currentAccount.getCurrency());
-        if (newInterestRate != null && this.interestRate != newInterestRate.doubleValue())
+        if (newInterestRate != null && this.interestRate != newInterestRate.doubleValue()){
             this.interestRate = newInterestRate.doubleValue();
+            Database.updateEntity(DatabaseTable.LOANS,"loan_interest_rate",this.interestRate,this.getProductUniqueId());
+        }
+
     }
 
 
@@ -195,6 +200,7 @@ public class Loan extends Product {
 
     public void updateIndexToNextPayment() {
         this.indexToNextPaymentDate += 1;
+        Database.updateEntity(DatabaseTable.LOANS,"index_to_next_payment",this.indexToNextPaymentDate,this.getProductUniqueId());
     }
 
     public void updatePaymentDatesBecauseOfMissingCurrentPrincipalPayment() {
@@ -216,6 +222,7 @@ public class Loan extends Product {
 
     public void decreaseLoanCurrentAmount(double amount) {
         this.loanCurrentAmount -= amount;
+        Database.updateEntity(DatabaseTable.LOANS,"loan_current_amount",this.loanCurrentAmount,this.getProductUniqueId());
     }
 
     @Override

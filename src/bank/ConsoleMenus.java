@@ -92,7 +92,7 @@ final class ConsoleMenus {
                 case 0:
                     return;
                 case 1:
-                    AuditService.addLoggingData(UserType.BANK_MANAGER,"logged in");
+                    AuditService.addLoggingData(UserType.BANK_MANAGER, "logged in");
                     ConsoleMenus.allowBankManagerToModifyTheBankState(bank);
                     break;
                 case 2:
@@ -101,7 +101,7 @@ final class ConsoleMenus {
                     if (customer == null)
                         System.out.println("Invalid credentials! Please try again!");
                     else {
-                        AuditService.addLoggingData(UserType.CUSTOMER,customer.getCustomerName()+" logged in");
+                        AuditService.addLoggingData(UserType.CUSTOMER, customer.getCustomerName() + " logged in");
                         ConsoleMenus.allowCustomerToInterogateBank(customer);
                     }
                     break;
@@ -187,6 +187,9 @@ final class ConsoleMenus {
                 case 19:
                     bank.showSystemDate();
                     break;
+                case 20:
+                    bank.deleteCustomer(ConsoleMenus.getCustomerIdBasedOnBankManagerSelection(bank.getCustomers()));
+                    break;
                 default:
                     System.out.println("Wrong choice. Please try again!");
             }
@@ -194,7 +197,7 @@ final class ConsoleMenus {
     }
 
     private static void showBankManagerOptions() {
-        String options = "Options:\n" +
+        String options = "\nOptions:\n" +
                 "\t 0) exit menu\n" +
                 "\t 1) show customers\n" +
                 "\t 2) show customer summary\n" +
@@ -214,7 +217,8 @@ final class ConsoleMenus {
                 "\t 16) show current exchange rates\n" +
                 "\t 17) show current interest rates\n" +
                 "\t 18) show current fees\n" +
-                "\t 19) show system date\n";
+                "\t 19) show system date\n" +
+                "\t 20) delete customer\n";
 
         System.out.println(options);
     }
@@ -335,9 +339,7 @@ final class ConsoleMenus {
                     break;
                 case 18:
                     customer.deleteDebitCard(
-                            ConsoleMenus.getCurrentAccountBasedOnUserSelection(
-                                    customer,
-                                    "Select the current account for which the debit card will be deleted: "),
+                            getDebitCardBasedOnUserSelection(customer,"Select the debit card to delete: "),
                             true);
                     break;
                 case 19:
@@ -377,6 +379,25 @@ final class ConsoleMenus {
                     System.out.println("Wrong choice. Please try again!");
             }
         }
+    }
+
+    private static String getCustomerIdBasedOnBankManagerSelection(List<Customer> customers) {
+        int customerIndex = 1;
+        System.out.println("Bank's customers are:");
+        for (Customer customer : customers)
+            System.out.println("\t " + (customerIndex++) + ") ID: " + customer.getUniqueID() + " customer name: " + customer.getCustomerName());
+
+        int bankManagerSelection;
+        while (true) {
+            bankManagerSelection = ConsoleMenus.getUserSelection();
+            if (bankManagerSelection >= customerIndex || bankManagerSelection <= 0) {
+                System.out.println("Invalid choice! Please try again!");
+                continue;
+            } else
+                break;
+        }
+
+        return customers.get(bankManagerSelection - 1).getCustomerUniqueID();
     }
 
     private static CurrentAccount getCurrentAccountBasedOnUserSelection(Customer customer, String messageToUser) {

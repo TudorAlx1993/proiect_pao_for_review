@@ -58,7 +58,7 @@ public final class BankCustomerAndProductsCsvReader {
         return filesNamesWithPattern;
     }
 
-    public void read() {
+    public void readSystemDateAndStaticVariables(){
         final String directoryPath = DataStorage.getPath();
         final List<String> csvFilesNames = this.getFileNamesFromDirectory(directoryPath, CsvFileConfig.getFileExtension());
 
@@ -69,13 +69,21 @@ public final class BankCustomerAndProductsCsvReader {
         // section 2: first read the static variables from the csv file
         final String staticVariablesFileName = this.getFileNameBasedOnPattern(csvFilesNames, "static_variables");
         this.readStaticVariablesFromCsvFile(staticVariablesFileName);
+    }
 
-        // section 3: read the csv file related to customers
+    public void read() {
+        final String directoryPath = DataStorage.getPath();
+        final List<String> csvFilesNames = this.getFileNamesFromDirectory(directoryPath, CsvFileConfig.getFileExtension());
+
+        // section 1: read the system date and the static variables
+        this.readSystemDateAndStaticVariables();
+
+        // section 2: read the csv file related to customers
         final String customerFileName = this.getFileNameBasedOnPattern(csvFilesNames, "customers");
         final List<List<String>> fileCustomers = this.readCsvFile(customerFileName);
         final List<Customer> customers = this.createCustomersBasedOnFileContent(fileCustomers);
 
-        // section 4: read the csv files related to products
+        // section 3: read the csv files related to products
         // also associate the products with the related customers
 
         // start with the current accounts because any other product requires the information related to a given current account
@@ -122,7 +130,7 @@ public final class BankCustomerAndProductsCsvReader {
         Map<String, List<Loan>> customersIdAndLoans = this.createProductsBasedOnFileContent(fileLoans, productType, currentAccounts);
         this.addProductsToCustomers(customersIdAndLoans, customers);
 
-        // section 5: link the customers read form the csv file to the bank's data structure related to customers
+        // section 4: link the customers read form the csv file to the bank's data structure related to customers
         this.bank.setCustomers(customers);
     }
 
