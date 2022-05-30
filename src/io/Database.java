@@ -713,7 +713,7 @@ public final class Database {
 
     public static <T> void updateEntity(DatabaseTable tableName, String fieldName, T fieldValue, String uniqueID) {
         if (!DatabaseConfig.getKeyNamePerDatabaseTable().containsKey(tableName)) {
-            System.err.println("Error: database table not configurated! Please check the static function configurateKeyNamePerDatabaseTable from DatabaseConfig class (package configs)!");
+            System.err.println("Error: database table not configured! Please check the static function configurateKeyNamePerDatabaseTable from DatabaseConfig class (package configs)!");
             System.exit(Codes.EXIT_ON_ERROR);
         }
 

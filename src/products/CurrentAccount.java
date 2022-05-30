@@ -4,6 +4,7 @@ import configs.IBANConfig;
 import configs.SystemDate;
 import currency.Currency;
 import io.Database;
+import io.DatabaseTable;
 import transaction.TransactionDetail;
 import transaction.TransactionLogger;
 import transaction.TransactionType;
@@ -100,6 +101,7 @@ public class CurrentAccount extends Product {
         TransactionLogger transactionLogger = new TransactionLogger(transactionType, amount, details, date);
         this.transactions.add(transactionLogger);
 
+        Database.updateEntity(DatabaseTable.CURRENT_ACCOUNTS, "amount", this.amount, this.getProductUniqueId());
         Database.saveCurrentAccountTransaction(transactionLogger, this);
     }
 

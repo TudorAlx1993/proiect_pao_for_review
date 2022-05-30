@@ -1,18 +1,10 @@
-import address.Address;
 import configs.*;
 import currency.Currency;
-import customers.Company;
-import customers.Customer;
-import customers.Individual;
 import io.Database;
-import io.DatabaseTable;
-import products.CurrentAccount;
 import bank.Bank;
 import audit.AuditService;
 
-import javax.xml.crypto.Data;
 import java.lang.Math;
-import java.time.LocalDate;
 
 public class Main {
     public static void main(String[] args) {
@@ -78,7 +70,7 @@ public class Main {
         bank.runInConsole();
 
         // save the system date and static variables to csv files
-        //bank.saveSystemDateAndStaticVariablesToCsvFiles();
+        bank.saveSystemDateAndStaticVariablesToCsvFiles();
 
         // close the files related to audit
         AuditService.closeFiles();
@@ -87,3 +79,4 @@ public class Main {
         Database.closeDatabaseConnection();
     }
 }
+
